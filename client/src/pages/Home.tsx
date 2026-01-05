@@ -149,6 +149,63 @@ export default function Home() {
         </Link>
       </header>
 
+      {/* DAY AT A GLANCE (New Feature) */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+           <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Today's Snapshot</h2>
+           <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">{format(new Date(), 'MMM d, yyyy')}</span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+           {/* ME Column */}
+           <div className="bg-card/50 border rounded-xl p-3">
+             <h3 className="text-xs font-bold mb-2 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400"/> Me</h3>
+             <div className="space-y-1">
+               {items.filter(i => (i.bucket === 'personal' || i.assigneeId === user.id) && !i.completed).slice(0, 2).map(item => (
+                 <BucketItem key={item.id} item={item} compact />
+               ))}
+               {items.filter(i => (i.bucket === 'personal' || i.assigneeId === user.id) && !i.completed).length === 0 && (
+                 <p className="text-[10px] text-muted-foreground italic py-2 text-center">All clear! 🎉</p>
+               )}
+             </div>
+           </div>
+
+           {/* US Column */}
+           <div className="bg-card/50 border rounded-xl p-3">
+             <h3 className="text-xs font-bold mb-2 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-400"/> Us</h3>
+             <div className="space-y-1">
+               {items.filter(i => i.bucket === 'joint' && !i.completed).slice(0, 2).map(item => (
+                 <BucketItem key={item.id} item={item} compact />
+               ))}
+               {items.filter(i => i.bucket === 'joint' && !i.completed).length === 0 && (
+                 <p className="text-[10px] text-muted-foreground italic py-2 text-center">Nothing scheduled.</p>
+               )}
+             </div>
+           </div>
+
+           {/* PARTNER Column */}
+           <div className="bg-card/50 border rounded-xl p-3 opacity-80">
+             <h3 className="text-xs font-bold mb-2 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-400"/> {partner.name}</h3>
+             <div className="space-y-1">
+               {items.filter(i => (i.bucket === 'partner' || i.assigneeId === partner.id) && !i.completed).slice(0, 2).map(item => (
+                 <BucketItem key={item.id} item={item} compact />
+               ))}
+               {items.filter(i => (i.bucket === 'partner' || i.assigneeId === partner.id) && !i.completed).length === 0 && (
+                 <p className="text-[10px] text-muted-foreground italic py-2 text-center">Chilling...</p>
+               )}
+             </div>
+           </div>
+        </div>
+        
+        {/* AI Insight for the day */}
+        <div className="flex gap-3 bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800">
+           <Sparkles size={16} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+           <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-snug">
+             <strong>AI Insight:</strong> Looks like a busy day for {user.name}. Margaux, maybe you can pick up the groceries from the "Us" list?
+           </p>
+        </div>
+      </section>
+
       {/* Hero / Avatar Stage */}
       <section className="relative h-72 rounded-3xl bg-gradient-to-br from-violet-50/50 to-fuchsia-50/50 dark:from-violet-950/20 dark:to-fuchsia-950/20 flex flex-col items-center justify-start pt-8 border border-white/40 dark:border-white/5 shadow-xl backdrop-blur-sm overflow-hidden">
         

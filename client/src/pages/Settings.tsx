@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save, Calendar, LogOut, Trash2, Shield, User, Bell } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, LogOut, Trash2, Shield, User, Bell, Sparkles } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useState } from 'react';
 import { useTheme } from '@/components/theme-provider';
@@ -139,7 +139,48 @@ export default function Settings() {
         <section className="space-y-4">
            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider border-b pb-2">Preferences</h2>
            
-           <div className="flex items-center justify-between">
+           <div className="space-y-3">
+             <Label>App Theme</Label>
+             <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  className="justify-start bg-indigo-50 text-indigo-900 border-indigo-200 hover:bg-indigo-100"
+                  onClick={() => document.body.className = document.body.className.replace(/theme-\w+/g, '') + ' theme-lavender'}
+                >
+                  <div className="w-4 h-4 rounded-full bg-violet-500 mr-2" />
+                  Lavender (Default)
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="justify-start bg-cyan-50 text-cyan-900 border-cyan-200 hover:bg-cyan-100"
+                  onClick={() => document.body.className = document.body.className.replace(/theme-\w+/g, '') + ' theme-ocean'}
+                >
+                  <div className="w-4 h-4 rounded-full bg-cyan-500 mr-2" />
+                  Ocean Breeze
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="justify-start bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100"
+                  onClick={() => document.body.className = document.body.className.replace(/theme-\w+/g, '') + ' theme-forest'}
+                >
+                  <div className="w-4 h-4 rounded-full bg-emerald-600 mr-2" />
+                  Forest Calm
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="justify-start bg-rose-50 text-rose-900 border-rose-200 hover:bg-rose-100"
+                  onClick={() => document.body.className = document.body.className.replace(/theme-\w+/g, '') + ' theme-sunset'}
+                >
+                  <div className="w-4 h-4 rounded-full bg-rose-500 mr-2" />
+                  Sunset Vibes
+                </Button>
+             </div>
+             <Button variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => toast({ title: "AI Magic ✨", description: "Generating a custom theme based on your vibe..." })}>
+               <Sparkles size={14} className="mr-1" /> Generate Theme with AI
+             </Button>
+           </div>
+
+           <div className="flex items-center justify-between mt-4">
              <div className="space-y-0.5">
                <Label>Dark Mode</Label>
              </div>

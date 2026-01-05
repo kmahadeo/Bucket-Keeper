@@ -40,77 +40,77 @@
   --color-chart-5: hsl(var(--chart-5));
 }
 
-/* LIGHT MODE - Soft Pop Theme */
+/* BASE VARIABLES (Fallback) */
 :root {
-  /* Soft Cool Gray Background */
   --background: 220 20% 97%;
   --foreground: 222 47% 11%;
-
-  /* White Cards with soft shadow potential */
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
-
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
-
-  /* Playful Violet */
   --primary: 260 85% 65%;
   --primary-foreground: 210 40% 98%;
-
-  /* Soft Coral for Partner/Love vibes */
   --secondary: 10 85% 65%;
   --secondary-foreground: 210 40% 98%;
-
-  /* Soft Muted Gray/Blue for inactive elements */
   --muted: 210 40% 96.1%;
   --muted-foreground: 215.4 16.3% 46.9%;
-
-  /* Gold/Yellow for Joint/Rewards */
   --accent: 45 90% 60%;
   --accent-foreground: 222 47% 11%;
-
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
-
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 260 85% 65%;
-
   --radius: 0.75rem;
-
-  /* Chart colors for vizzes if needed */
-  --chart-1: 12 76% 61%;
-  --chart-2: 173 58% 39%;
-  --chart-3: 197 37% 24%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
 }
+
+/* THEMES */
+/* Lavender Haze (Default) */
+.theme-lavender {
+  --primary: 260 85% 65%;
+  --secondary: 10 85% 65%;
+  --background: 260 20% 98%;
+}
+
+/* Ocean Breeze */
+.theme-ocean {
+  --primary: 190 90% 40%;
+  --secondary: 30 90% 60%;
+  --background: 200 30% 98%;
+}
+
+/* Forest Calm */
+.theme-forest {
+  --primary: 150 60% 35%;
+  --secondary: 35 80% 60%;
+  --background: 140 20% 98%;
+}
+
+/* Sunset Vibes */
+.theme-sunset {
+  --primary: 340 85% 60%;
+  --secondary: 40 90% 60%;
+  --background: 20 20% 98%;
+}
+
 
 .dark {
   --background: 222 47% 11%;
   --foreground: 210 40% 98%;
-
   --card: 222 47% 11%;
   --card-foreground: 210 40% 98%;
-
   --popover: 222 47% 11%;
   --popover-foreground: 210 40% 98%;
-
   --primary: 260 85% 65%;
   --primary-foreground: 222 47.4% 11.2%;
-
   --secondary: 10 85% 65%;
   --secondary-foreground: 210 40% 98%;
-
   --muted: 217.2 32.6% 17.5%;
   --muted-foreground: 215 20.2% 65.1%;
-
   --accent: 45 90% 60%;
   --accent-foreground: 222 47.4% 11.2%;
-
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
-
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
   --ring: 260 85% 65%;
@@ -128,7 +128,6 @@
   }
 }
 
-/* Custom Utility Classes for that "App" feel */
 @layer utilities {
   .app-container {
     @apply max-w-md mx-auto min-h-screen bg-background relative pb-24 shadow-2xl;
