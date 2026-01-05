@@ -6,6 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { buildCoupleContext, formatContextForPrompt } from "./ai/context";
+import { isCalendarConnected, getCalendarEvents, createCalendarEvent, deleteCalendarEvent } from "./calendar";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY!,
@@ -430,6 +431,72 @@ Return JSON:
     } catch (error) {
       console.error("Error generating theme:", error);
       res.status(500).json({ error: "Failed to generate theme" });
+    }
+  });
+
+  // --- Calendar API ---
+
+  app.get("/api/calendar/status", async (req: Request, res: Response) => {
+    try {
+      const connected = await isCalendarConnected();
+      res.json({ connected });
+    } catch (error) {
+      console.error("Error checking calendar status:", error);
+      res.json({ connected: false });
+    }
+  });
+
+  app.get("/api/calendar/events", async (req: Request, res: Response) => {
+    try {
+      const timeMin = req.query.timeMin ? new Date(req.query.timeMin as string) : undefined;
+      const timeMax = req.query.timeMax ? new Date(req.query.timeMax as string) : undefined;
+      
+      const events = await getCalendarEvents(timeMin, timeMax);
+      res.json(events);
+    } catch (error: any) {
+      console.error("Error fetching calendar events:", error);
+      if (error.message?.includes("not connected")) {
+        res.status(401).json({ error: "Calendar not connected" });
+      } else {
+        res.status(500).json({ error: "Failed to fetch calendar events" });
+      }
+    }
+  });
+
+  app.post("/api/calendar/sync-item", async (req: Request, res: Response) => {
+    try {
+      const { itemId, title, dueDate, description } = req.body;
+      
+      if (!title || !dueDate) {
+        return res.status(400).json({ error: "Title and due date are required" });
+      }
+
+      const event = await createCalendarEvent({
+        title: `[Bucket] ${title}`,
+        description: description || `Synced from Bucket Keeper`,
+        startDate: new Date(dueDate),
+        allDay: true
+      });
+
+      res.json({ success: true, eventId: event.id });
+    } catch (error: any) {
+      console.error("Error syncing item to calendar:", error);
+      if (error.message?.includes("not connected")) {
+        res.status(401).json({ error: "Calendar not connected" });
+      } else {
+        res.status(500).json({ error: "Failed to sync item to calendar" });
+      }
+    }
+  });
+
+  app.delete("/api/calendar/event/:eventId", async (req: Request, res: Response) => {
+    try {
+      const { eventId } = req.params;
+      await deleteCalendarEvent(eventId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting calendar event:", error);
+      res.status(500).json({ error: "Failed to delete calendar event" });
     }
   });
 

@@ -212,3 +212,38 @@ export async function generateTheme(userId?: string): Promise<{ primary: string;
   if (!res.ok) throw new Error('Failed to generate theme');
   return res.json();
 }
+
+// --- Calendar API ---
+
+export interface CalendarEvent {
+  id: string;
+  summary: string;
+  start: { dateTime?: string; date?: string };
+  end: { dateTime?: string; date?: string };
+  description?: string;
+}
+
+export async function getCalendarStatus(): Promise<{ connected: boolean }> {
+  const res = await fetch(`${API_BASE}/calendar/status`);
+  return res.json();
+}
+
+export async function getCalendarEvents(timeMin?: string, timeMax?: string): Promise<CalendarEvent[]> {
+  const params = new URLSearchParams();
+  if (timeMin) params.append('timeMin', timeMin);
+  if (timeMax) params.append('timeMax', timeMax);
+  
+  const res = await fetch(`${API_BASE}/calendar/events?${params}`);
+  if (!res.ok) throw new Error('Failed to fetch calendar events');
+  return res.json();
+}
+
+export async function syncItemToCalendar(item: { itemId: string; title: string; dueDate: string; description?: string }): Promise<{ success: boolean; eventId?: string }> {
+  const res = await fetch(`${API_BASE}/calendar/sync-item`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(item),
+  });
+  if (!res.ok) throw new Error('Failed to sync item to calendar');
+  return res.json();
+}
