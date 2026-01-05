@@ -2,25 +2,40 @@ import { useApp } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { CoinDisplay } from '@/components/ui/CoinDisplay';
-import { Gift, Lock, Plus, Wand2 } from 'lucide-react';
+import { Lock, Plus, Wand2, Loader2 } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-  DrawerClose,
-  DrawerFooter
 } from "@/components/ui/drawer"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { getStoreRecommendations, type StoreRecommendations } from '@/lib/api';
 
 export default function Store() {
   const { rewards, user, redeemReward, addReward } = useApp();
   const { toast } = useToast();
+  const [storeRecs, setStoreRecs] = useState<StoreRecommendations | null>(null);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsFetched, setRecsFetched] = useState(false);
+
+  useEffect(() => {
+    if (!recsFetched) {
+      setRecsLoading(true);
+      setRecsFetched(true);
+      getStoreRecommendations(user.id).then(recs => {
+        setStoreRecs(recs);
+        setRecsLoading(false);
+      }).catch(() => {
+        setRecsLoading(false);
+      });
+    }
+  }, [user.id, recsFetched]);
 
   return (
     <div className="p-6 pb-24">
@@ -38,17 +53,27 @@ export default function Store() {
           <h3 className="font-bold flex items-center gap-2 text-sm text-violet-900 dark:text-violet-100">
             <Wand2 size={14} /> AI Recommendation
           </h3>
-          <p className="text-xs text-muted-foreground mt-1 mb-3">
-            Based on your recent "Gym" streak, you should add a massage reward!
-          </p>
-          <Button size="sm" variant="secondary" className="h-7 text-xs bg-white/50 backdrop-blur-sm" onClick={() => addReward({
-            title: 'Massage',
-            cost: 100,
-            type: 'partner_gift',
-            icon: '💆‍♂️'
-          })}>
-            Add "Massage" (100 🪙)
-          </Button>
+          {recsLoading ? (
+            <div className="flex items-center gap-2 mt-1">
+              <Loader2 className="animate-spin text-violet-500" size={14} />
+              <span className="text-xs text-violet-600 dark:text-violet-400">Analyzing your rewards...</span>
+            </div>
+          ) : storeRecs ? (
+            <>
+              <p className="text-xs text-muted-foreground mt-1 mb-3" data-testid="text-store-recommendation">
+                {storeRecs.recommendation}
+              </p>
+              {storeRecs.motivation && (
+                <p className="text-xs text-violet-700 dark:text-violet-300 italic">
+                  {storeRecs.motivation}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1">
+              Complete more tasks to get personalized reward suggestions!
+            </p>
+          )}
         </div>
       </div>
 

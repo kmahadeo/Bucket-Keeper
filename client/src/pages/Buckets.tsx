@@ -3,16 +3,33 @@ import { BucketItem } from '@/components/ui/BucketItem';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { Calendar as CalendarIcon, List as ListIcon, LayoutGrid, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon, List as ListIcon, LayoutGrid, Sparkles, Loader2 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { getBucketInsights, type BucketInsights } from '@/lib/api';
 
 export default function Buckets() {
   const { items, activeBucket, setActiveBucket, user, partner } = useApp();
   const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'household'>('list');
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [bucketInsights, setBucketInsights] = useState<BucketInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsFetched, setInsightsFetched] = useState(false);
+
+  useEffect(() => {
+    if (viewMode === 'household' && !insightsFetched) {
+      setInsightsLoading(true);
+      setInsightsFetched(true);
+      getBucketInsights('joint', user.id).then(insights => {
+        setBucketInsights(insights);
+        setInsightsLoading(false);
+      }).catch(() => {
+        setInsightsLoading(false);
+      });
+    }
+  }, [viewMode, user.id, insightsFetched]);
 
   const filteredItems = items.filter(item => {
     if (viewMode === 'household') return true; // Show all relevant for household view
@@ -139,11 +156,22 @@ export default function Buckets() {
           {/* AI Banner */}
           <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900 flex gap-3 items-start">
             <Sparkles className="text-indigo-500 mt-1 flex-shrink-0" size={18} />
-            <div>
+            <div className="flex-1">
                <h3 className="font-bold text-sm text-indigo-900 dark:text-indigo-100">AI Insight</h3>
-               <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed mt-1">
-                 Margaux has done 80% of the laundry this month. Maybe Kaushik can take the next load?
-               </p>
+               {insightsLoading ? (
+                 <div className="flex items-center gap-2 mt-1">
+                   <Loader2 className="animate-spin text-indigo-500" size={14} />
+                   <span className="text-xs text-indigo-600 dark:text-indigo-400">Analyzing your patterns...</span>
+                 </div>
+               ) : bucketInsights?.tip ? (
+                 <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed mt-1" data-testid="text-bucket-insight">
+                   {bucketInsights.tip}
+                 </p>
+               ) : (
+                 <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed mt-1">
+                   Keep adding tasks to get personalized insights about your household patterns.
+                 </p>
+               )}
             </div>
           </div>
 
