@@ -4,7 +4,7 @@ import { CoinDisplay } from '@/components/ui/CoinDisplay';
 import { BucketItem } from '@/components/ui/BucketItem';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2, Calendar as CalendarIcon, Wand2, Dices, Send, CalendarDays } from 'lucide-react';
+import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2, Calendar as CalendarIcon, Wand2, Dices, Send, CalendarDays, ClipboardCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'wouter';
 import { useState } from 'react';
@@ -58,7 +58,12 @@ export default function Home() {
 
   const todaysItems = items
     .filter(i => !i.completed)
-    .sort((a, b) => (b.coinsReward - a.coinsReward))
+    .sort((a, b) => {
+      // Sort by Priority High first, then reward
+      if (a.priority === 'high' && b.priority !== 'high') return -1;
+      if (a.priority !== 'high' && b.priority === 'high') return 1;
+      return b.coinsReward - a.coinsReward;
+    })
     .slice(0, 3);
 
   const handleResolveConflict = async () => {
@@ -267,6 +272,24 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Check-in CTA (New) */}
+      <Link href="/check-in">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 p-4 rounded-2xl flex items-center justify-between cursor-pointer tap-active shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-3">
+             <div className="bg-green-100 dark:bg-green-900 p-2.5 rounded-full text-green-600 dark:text-green-400">
+               <ClipboardCheck size={24} />
+             </div>
+             <div>
+               <h3 className="font-bold text-green-900 dark:text-green-100">Weekly Check-in</h3>
+               <p className="text-xs text-green-700 dark:text-green-300">Review goals & high-priority items</p>
+             </div>
+          </div>
+          <Button size="sm" className="bg-green-600 text-white hover:bg-green-700 rounded-lg">
+            Start
+          </Button>
+        </div>
+      </Link>
 
       {/* AI Conflict Alert (Demo) */}
       <AnimatePresence>

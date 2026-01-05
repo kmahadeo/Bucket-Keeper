@@ -9,6 +9,7 @@ import Store from "@/pages/Store";
 import Archive from "@/pages/Archive";
 import Settings from "@/pages/Settings";
 import CalendarSync from "@/pages/CalendarSync";
+import CheckIn from "@/pages/CheckIn";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
@@ -18,6 +19,7 @@ function Router() {
       <Switch>
         <Route path="/login" component={Login} />
         <Route path="/" component={Home} />
+        <Route path="/check-in" component={CheckIn} />
         <Route path="/buckets" component={Buckets} />
         <Route path="/store" component={Store} />
         <Route path="/archive" component={Archive} />

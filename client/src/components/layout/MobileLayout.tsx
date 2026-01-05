@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { Home, ListTodo, ShoppingBag, Archive, Plus, Calendar, Clock } from 'lucide-react';
+import { Home, ListTodo, ShoppingBag, Archive, Plus, Calendar, Clock, AlertTriangle, User, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 export function MobileLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -55,7 +57,7 @@ function NavLink({ to, icon: Icon, label, active }: { to: string, icon: any, lab
 }
 
 function AddItemFab() {
-  const { addItem, activeBucket } = useApp();
+  const { addItem, activeBucket, user, partner } = useApp();
   const [title, setTitle] = useState('');
   const [coins, setCoins] = useState('10');
   const [type, setType] = useState('task');
@@ -63,6 +65,9 @@ function AddItemFab() {
   const [syncCalendar, setSyncCalendar] = useState(false);
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [reminder, setReminder] = useState(false);
+  const [priority, setPriority] = useState('medium');
+  const [frequency, setFrequency] = useState('once');
+  const [assignee, setAssignee] = useState<string>('unassigned');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,15 +79,22 @@ function AddItemFab() {
       coinsReward: parseInt(coins),
       dueDate: date,
       syncToCalendar: syncCalendar,
-      reminders: reminder ? ['10:00 AM'] : undefined
+      reminders: reminder ? ['10:00 AM'] : undefined,
+      priority: priority as any,
+      frequency: frequency === 'once' ? undefined : frequency as any,
+      assigneeId: assignee === 'unassigned' ? undefined : assignee,
     });
+    
+    // Reset and Close
     setTitle('');
     setOpen(false);
-    // Reset form
     setType('task');
     setSyncCalendar(false);
     setDate(undefined);
     setReminder(false);
+    setPriority('medium');
+    setFrequency('once');
+    setAssignee('unassigned');
   };
 
   return (
@@ -94,17 +106,17 @@ function AddItemFab() {
           </div>
         </div>
       </DrawerTrigger>
-      <DrawerContent className="max-w-md mx-auto h-[85vh]">
+      <DrawerContent className="max-w-md mx-auto h-[90vh]">
         <div className="mx-auto w-full max-w-sm h-full flex flex-col">
           <DrawerHeader>
             <DrawerTitle>Add to {activeBucket} Bucket</DrawerTitle>
           </DrawerHeader>
-          <form onSubmit={handleSubmit} className="p-4 space-y-6 flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-4 space-y-6 flex-1 overflow-y-auto pb-8">
             <div className="space-y-3">
               <Label htmlFor="title" className="text-base">What needs doing?</Label>
               <Input 
                 id="title"
-                placeholder="e.g. Plan anniversary dinner..." 
+                placeholder="e.g. Wash the car..." 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
@@ -121,10 +133,9 @@ function AddItemFab() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="task">Task ✅</SelectItem>
+                    <SelectItem value="chore">Chore 🧹</SelectItem>
+                    <SelectItem value="habit">Habit 🔄</SelectItem>
                     <SelectItem value="event">Event 📅</SelectItem>
-                    <SelectItem value="routine">Routine 🔄</SelectItem>
-                    <SelectItem value="calendar">Calendar 📆</SelectItem>
-                    <SelectItem value="schedule">Schedule 🕒</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -145,7 +156,85 @@ function AddItemFab() {
               </div>
             </div>
 
+            {/* Expanded Options */}
             <div className="space-y-4 pt-2">
+              
+              {/* Assignee */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Assignee</Label>
+                <div className="flex gap-2">
+                   <div 
+                     className={cn(
+                       "flex-1 p-2 rounded-lg border flex flex-col items-center gap-1 cursor-pointer transition-all",
+                       assignee === user.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                     )}
+                     onClick={() => setAssignee(user.id)}
+                   >
+                     <Avatar className="w-8 h-8"><AvatarImage src={user.avatar} /></Avatar>
+                     <span className="text-[10px] font-medium">Me</span>
+                   </div>
+                   <div 
+                     className={cn(
+                       "flex-1 p-2 rounded-lg border flex flex-col items-center gap-1 cursor-pointer transition-all",
+                       assignee === partner.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                     )}
+                     onClick={() => setAssignee(partner.id)}
+                   >
+                     <Avatar className="w-8 h-8"><AvatarImage src={partner.avatar} /></Avatar>
+                     <span className="text-[10px] font-medium">{partner.name}</span>
+                   </div>
+                   <div 
+                     className={cn(
+                       "flex-1 p-2 rounded-lg border flex flex-col items-center gap-1 cursor-pointer transition-all",
+                       assignee === 'unassigned' ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                     )}
+                     onClick={() => setAssignee('unassigned')}
+                   >
+                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"><User size={16} /></div>
+                     <span className="text-[10px] font-medium">Anyone</span>
+                   </div>
+                </div>
+              </div>
+
+              {/* Priority */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Priority</Label>
+                <div className="flex gap-2">
+                  {['low', 'medium', 'high'].map((p) => (
+                    <div 
+                      key={p}
+                      className={cn(
+                        "flex-1 py-2 px-3 rounded-lg border text-center text-xs font-medium capitalize cursor-pointer transition-all",
+                        priority === p 
+                          ? p === 'high' ? "bg-red-100 border-red-200 text-red-700" : p === 'medium' ? "bg-amber-100 border-amber-200 text-amber-700" : "bg-blue-100 border-blue-200 text-blue-700"
+                          : "hover:bg-muted/50"
+                      )}
+                      onClick={() => setPriority(p)}
+                    >
+                      {p === 'high' && <AlertTriangle size={12} className="inline mr-1" />}
+                      {p}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Frequency */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Frequency</Label>
+                <Select value={frequency} onValueChange={setFrequency}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="once">Once</SelectItem>
+                    <SelectItem value="daily">Daily ☀️</SelectItem>
+                    <SelectItem value="weekly">Weekly 📅</SelectItem>
+                    <SelectItem value="monthly">Monthly 🗓️</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date & Extras */}
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg text-blue-600">
@@ -172,37 +261,9 @@ function AddItemFab() {
                   </PopoverContent>
                 </Popover>
               </div>
-
-              {date && (
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border animate-in fade-in slide-in-from-top-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg text-green-600">
-                      <Clock size={18} />
-                    </div>
-                    <div>
-                      <Label htmlFor="sync" className="cursor-pointer">Sync to Calendar</Label>
-                      <p className="text-xs text-muted-foreground">Google / Apple / Outlook</p>
-                    </div>
-                  </div>
-                  <Switch id="sync" checked={syncCalendar} onCheckedChange={setSyncCalendar} />
-                </div>
-              )}
-
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-100 dark:bg-amber-900 rounded-lg text-amber-600">
-                      <Clock size={18} />
-                    </div>
-                    <div>
-                      <Label htmlFor="remind" className="cursor-pointer">Set Reminder</Label>
-                      <p className="text-xs text-muted-foreground">Push notifications</p>
-                    </div>
-                  </div>
-                  <Switch id="remind" checked={reminder} onCheckedChange={setReminder} />
-              </div>
             </div>
 
-            <Button type="submit" className="w-full text-lg h-12 rounded-xl mt-auto">
+            <Button type="submit" className="w-full text-lg h-12 rounded-xl mt-auto shadow-lg shadow-primary/20">
               Add Item
             </Button>
           </form>

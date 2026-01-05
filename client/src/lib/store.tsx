@@ -16,7 +16,11 @@ export type Mood = 'happy' | 'calm' | 'stressed' | 'anxious' | 'irritated' | 'sa
 
 export type BucketType = 'personal' | 'partner' | 'joint';
 
-export type ItemType = 'task' | 'event' | 'routine' | 'calendar' | 'schedule';
+export type ItemType = 'task' | 'event' | 'routine' | 'calendar' | 'schedule' | 'chore' | 'habit';
+
+export type Priority = 'high' | 'medium' | 'low';
+
+export type Frequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'once';
 
 export type BucketItem = {
   id: string;
@@ -31,6 +35,9 @@ export type BucketItem = {
   assigneeId?: string; // Who should do it
   syncToCalendar?: boolean; // New: Sync flag
   reminders?: string[]; // New: Reminder times
+  priority?: Priority; // New: Priority
+  frequency?: Frequency; // New: Recurring
+  conflictPotential?: boolean; // New: AI flag for difficult tasks
 };
 
 export type Reward = {
@@ -65,12 +72,15 @@ const MOCK_PARTNER: User = {
 };
 
 const INITIAL_ITEMS: BucketItem[] = [
-  { id: '1', title: 'Buy groceries for taco night', type: 'task', bucket: 'joint', coinsReward: 10, completed: false },
-  { id: '2', title: 'Morning Run (5k)', type: 'routine', bucket: 'personal', coinsReward: 5, completed: true, completedAt: new Date() },
-  { id: '3', title: 'Date Night: Sushi', type: 'event', bucket: 'joint', dueDate: addDays(new Date(), 2), coinsReward: 50, completed: false, syncToCalendar: true },
-  { id: '4', title: 'Call Mom', type: 'task', bucket: 'personal', dueDate: new Date(), coinsReward: 10, completed: false },
-  { id: '5', title: 'Book flights for Paris', type: 'task', bucket: 'joint', coinsReward: 100, completed: false },
+  { id: '1', title: 'Buy groceries for taco night', type: 'task', bucket: 'joint', coinsReward: 10, completed: false, priority: 'medium' },
+  { id: '2', title: 'Morning Run (5k)', type: 'habit', bucket: 'personal', coinsReward: 5, completed: true, completedAt: new Date(), frequency: 'daily', assigneeId: 'u1' },
+  { id: '3', title: 'Date Night: Sushi', type: 'event', bucket: 'joint', dueDate: addDays(new Date(), 2), coinsReward: 50, completed: false, syncToCalendar: true, priority: 'high' },
+  { id: '4', title: 'Call Mom', type: 'task', bucket: 'personal', dueDate: new Date(), coinsReward: 10, completed: false, priority: 'low' },
+  { id: '5', title: 'Book flights for Paris', type: 'task', bucket: 'joint', coinsReward: 100, completed: false, priority: 'high', conflictPotential: true },
   { id: '6', title: 'Margaux\'s Dentist Appt', type: 'event', bucket: 'partner', dueDate: addDays(new Date(), 5), coinsReward: 0, completed: false, syncToCalendar: true },
+  { id: '7', title: 'Wash Dishes', type: 'chore', bucket: 'joint', coinsReward: 15, completed: false, frequency: 'daily', assigneeId: 'u1' },
+  { id: '8', title: 'Laundry', type: 'chore', bucket: 'joint', coinsReward: 20, completed: false, frequency: 'weekly', assigneeId: 'u2' },
+  { id: '9', title: 'Monthly Budget Review', type: 'task', bucket: 'joint', coinsReward: 50, completed: false, frequency: 'monthly', priority: 'high', conflictPotential: true },
 ];
 
 const INITIAL_REWARDS: Reward[] = [
