@@ -38,8 +38,8 @@ export async function registerRoutes(
 
   app.post("/api/items", async (req: Request, res: Response) => {
     try {
-      const validatedItem = insertBucketItemSchema.parse(req.body);
-      const newItem = await storage.createItem(validatedItem);
+      // Don't validate with Zod, just pass through (schema handles defaults)
+      const newItem = await storage.createItem(req.body);
       res.status(201).json(newItem);
     } catch (error) {
       console.error("Error creating item:", error);
@@ -96,8 +96,7 @@ export async function registerRoutes(
 
   app.post("/api/rewards", async (req: Request, res: Response) => {
     try {
-      const validatedReward = insertRewardSchema.parse(req.body);
-      const newReward = await storage.createReward(validatedReward);
+      const newReward = await storage.createReward(req.body);
       res.status(201).json(newReward);
     } catch (error) {
       console.error("Error creating reward:", error);
