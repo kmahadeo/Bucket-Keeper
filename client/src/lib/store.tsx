@@ -90,9 +90,7 @@ interface AppState {
   items: BucketItem[];
   rewards: Reward[];
   activeBucket: BucketType;
-  apiKey: string;
   loading: boolean;
-  setApiKey: (key: string) => void;
   setActiveBucket: (b: BucketType) => void;
   addItem: (item: Omit<BucketItem, 'id' | 'completed' | 'completedAt' | 'createdAt'>) => Promise<void>;
   toggleItem: (id: string) => Promise<void>;
@@ -111,7 +109,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<BucketItem[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [activeBucket, setActiveBucket] = useState<BucketType>('joint');
-  const [apiKey, setApiKey] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
@@ -274,9 +271,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     items,
     rewards,
     activeBucket,
-    apiKey,
     loading,
-    setApiKey,
     setActiveBucket,
     addItem,
     toggleItem,

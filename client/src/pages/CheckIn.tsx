@@ -8,10 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { generateConflictResolution } from '@/lib/gemini';
 
 export default function CheckIn() {
-  const { user, items, apiKey } = useApp();
+  const { user, items } = useApp();
   const [, setLocation] = useLocation();
   const [step, setStep] = useState<'intro' | 'timer' | 'agenda' | 'parking' | 'summary'>('intro');
   const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes

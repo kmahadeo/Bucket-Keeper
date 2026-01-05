@@ -22,17 +22,14 @@ import {
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
-  const { apiKey, setApiKey, user } = useApp();
+  const { user } = useApp();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   
-  const [localKey, setLocalKey] = useState(apiKey);
-  
   const handleSave = () => {
-    setApiKey(localKey);
     toast({
       title: "Settings Saved",
-      description: "Your preferences and API key have been updated.",
+      description: "Your preferences have been updated.",
     });
   };
 
@@ -115,24 +112,14 @@ export default function Settings() {
            
            <div className="flex items-center justify-between">
              <div className="space-y-0.5">
-               <Label>Enable Gemini AI</Label>
-               <p className="text-xs text-muted-foreground">Smart suggestions & conflict detection</p>
+               <Label>AI Features Enabled</Label>
+               <p className="text-xs text-muted-foreground">Smart suggestions & conflict detection powered by Gemini</p>
              </div>
-             <Switch checked={!!apiKey} onCheckedChange={() => {}} disabled />
+             <Switch checked={true} disabled />
            </div>
-
-           <div className="space-y-2">
-             <Label>Gemini API Key</Label>
-             <Input 
-               type="password" 
-               placeholder="AIzaSy..." 
-               value={localKey}
-               onChange={(e) => setLocalKey(e.target.value)}
-             />
-             <p className="text-xs text-muted-foreground">
-               Your key is stored locally on your device.
-             </p>
-           </div>
+           <p className="text-xs text-muted-foreground">
+             AI features are automatically configured and ready to use.
+           </p>
         </section>
 
         {/* Preferences */}

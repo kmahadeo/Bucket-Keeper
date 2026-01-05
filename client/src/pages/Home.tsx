@@ -8,7 +8,7 @@ import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2,
 import { format } from 'date-fns';
 import { Link } from 'wouter';
 import { useState } from 'react';
-import { generateConflictResolution } from '@/lib/gemini';
+import * as api from '@/lib/api';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +35,7 @@ import { Label } from '@/components/ui/label';
 import { getUpcomingHolidays } from '@/lib/holidays';
 
 export default function Home() {
-  const { user, partner, items, apiKey, updateMood } = useApp();
+  const { user, partner, items, updateMood } = useApp();
   const { toast } = useToast();
   const [conflictResolved, setConflictResolved] = useState(false);
   
@@ -67,21 +67,13 @@ export default function Home() {
     .slice(0, 3);
 
   const handleResolveConflict = async () => {
-    if (!apiKey) {
-      setAiOptions({
-        optionA: "Move Date Night to Saturday at 7:00 PM.",
-        optionB: "Shorten Poker Night to end by 8:00 PM."
-      });
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
-      const result = await generateConflictResolution("Date Night", "Poker Night", apiKey);
+      const result = await api.resolveConflict("Date Night", "Poker Night", aiContext);
       setAiOptions(result);
     } catch (e) {
-      setError("Failed to generate options. Please check your API Key.");
+      setError("Failed to generate AI suggestions. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -386,7 +378,7 @@ export default function Home() {
                     AI Resolution
                   </DialogTitle>
                   <DialogDescription>
-                    {apiKey ? "Gemini is negotiating the schedule..." : "Conflict detected. (Add API Key for real-time AI resolution)"}
+                    Gemini AI is analyzing the schedule conflict...
                   </DialogDescription>
                 </DialogHeader>
 
