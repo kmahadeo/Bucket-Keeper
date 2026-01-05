@@ -4,7 +4,7 @@ import { CoinDisplay } from '@/components/ui/CoinDisplay';
 import { BucketItem } from '@/components/ui/BucketItem';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2, Calendar as CalendarIcon, Wand2 } from 'lucide-react';
+import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2, Calendar as CalendarIcon, Wand2, Dices, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'wouter';
 import { useState } from 'react';
@@ -24,17 +24,33 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
+  DrawerFooter,
+  DrawerClose
 } from "@/components/ui/drawer"
 import { Mood } from '@/lib/store';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
 
 export default function Home() {
   const { user, partner, items, apiKey, updateMood } = useApp();
+  const { toast } = useToast();
   const [conflictResolved, setConflictResolved] = useState(false);
   
   // AI State
   const [loading, setLoading] = useState(false);
   const [aiOptions, setAiOptions] = useState<{optionA: string, optionB: string} | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aiContext, setAiContext] = useState('');
+
+  // Roll for Date State
+  const [rollResult, setRollResult] = useState<string | null>(null);
+  const [isRolling, setIsRolling] = useState(false);
+
+  // Love Note State
+  const [loveNote, setLoveNote] = useState('');
+  const [isSendingNote, setIsSendingNote] = useState(false);
 
   const todaysItems = items
     .filter(i => !i.completed)
@@ -60,6 +76,41 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRollDate = () => {
+    setIsRolling(true);
+    setRollResult(null);
+    
+    // Simulate rolling delay
+    setTimeout(() => {
+      const ideas = [
+        "Sushi Making Night 🍣",
+        "Sunset Picnic at the Park 🧺",
+        "Board Game War 🎲",
+        "Late Night Drive & Milkshakes 🚗",
+        "Build a Blanket Fort 🏰",
+        "Stargazing in the Backyard ✨"
+      ];
+      const randomIdea = ideas[Math.floor(Math.random() * ideas.length)];
+      setRollResult(randomIdea);
+      setIsRolling(false);
+    }, 1500);
+  };
+
+  const handleSendLoveNote = () => {
+    if (!loveNote.trim()) return;
+    setIsSendingNote(true);
+    
+    // Simulate network delay
+    setTimeout(() => {
+      setIsSendingNote(false);
+      setLoveNote('');
+      toast({
+        title: "Note Sent! 💌",
+        description: `Your love note has been sent to ${partner.name}.`,
+      });
+    }, 1000);
   };
 
   const moods: { id: Mood; label: string; icon: string }[] = [
@@ -90,19 +141,45 @@ export default function Home() {
       </header>
 
       {/* Hero / Avatar Stage */}
-      <section className="relative h-64 rounded-3xl bg-gradient-to-br from-violet-50/50 to-fuchsia-50/50 dark:from-violet-950/20 dark:to-fuchsia-950/20 flex flex-col items-center justify-center border border-white/40 dark:border-white/5 shadow-xl backdrop-blur-sm overflow-hidden">
+      <section className="relative h-72 rounded-3xl bg-gradient-to-br from-violet-50/50 to-fuchsia-50/50 dark:from-violet-950/20 dark:to-fuchsia-950/20 flex flex-col items-center justify-start pt-8 border border-white/40 dark:border-white/5 shadow-xl backdrop-blur-sm overflow-hidden">
         
         {/* Dynamic AI Background Texture */}
         <div className="absolute inset-0 opacity-30 pointer-events-none">
            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
         </div>
 
-        {/* Action Bar (Top of Card) */}
-        <div className="absolute top-4 left-4 right-4 flex justify-between z-20">
+        {/* Avatars - Positioned Higher */}
+        <div className="flex items-center gap-8 z-10 mb-6">
+          <div className="flex flex-col items-center">
+             <TamagotchiAvatar src={user.avatar} mood={user.mood} size="lg" />
+             <span className="text-xs font-bold mt-3 text-muted-foreground bg-white/50 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
+               You
+             </span>
+          </div>
+          
+          <div className="flex flex-col items-center justify-center mb-8">
+             <motion.div 
+               animate={{ scale: [1, 1.2, 1] }} 
+               transition={{ duration: 2, repeat: Infinity }}
+             >
+               <Heart className="text-rose-400 fill-rose-400 drop-shadow-lg" size={32} />
+             </motion.div>
+          </div>
+
+          <div className="flex flex-col items-center">
+             <TamagotchiAvatar src={partner.avatar} mood={partner.mood} size="lg" isPartner />
+             <span className="text-xs font-bold mt-3 text-muted-foreground bg-white/50 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
+               {partner.name}
+             </span>
+          </div>
+        </div>
+
+        {/* Action Bar (Bottom of Card) - Better Ergonomics */}
+        <div className="absolute bottom-4 left-4 right-4 flex justify-center gap-3 z-20">
            <Drawer>
              <DrawerTrigger asChild>
-                <Button variant="secondary" size="sm" className="h-8 text-xs font-semibold bg-white/80 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/20 rounded-full">
-                  <Sparkles size={12} className="mr-1.5 text-amber-500" />
+                <Button variant="secondary" size="sm" className="h-9 px-4 text-xs font-semibold bg-white/80 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/20 rounded-full hover:bg-white/90 transition-all">
+                  <Sparkles size={14} className="mr-1.5 text-amber-500" />
                   Vibe Check
                 </Button>
              </DrawerTrigger>
@@ -127,56 +204,41 @@ export default function Home() {
              </DrawerContent>
            </Drawer>
 
-           <div className="flex gap-2">
-             <Dialog>
-               <DialogTrigger asChild>
-                  <Button variant="secondary" size="sm" className="h-8 text-xs font-semibold bg-white/80 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/20 rounded-full text-indigo-600 dark:text-indigo-300">
-                    <Wand2 size={12} className="mr-1.5" />
-                    AI Plan
-                  </Button>
-               </DialogTrigger>
-               <DialogContent>
-                 <DialogHeader>
-                   <DialogTitle>AI Assistant</DialogTitle>
-                   <DialogDescription>Let Gemini help you plan your week together.</DialogDescription>
-                 </DialogHeader>
-                 <div className="space-y-4">
-                    <Button variant="outline" className="w-full justify-start h-12" onClick={() => alert("Mock: Generating date ideas...")}>
-                      <Sparkles className="mr-2 text-primary" size={16} /> Suggest Date Ideas
+           <Dialog>
+             <DialogTrigger asChild>
+                <Button variant="secondary" size="sm" className="h-9 px-4 text-xs font-semibold bg-white/80 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/20 rounded-full text-indigo-600 dark:text-indigo-300 hover:bg-white/90 transition-all">
+                  <Wand2 size={14} className="mr-1.5" />
+                  AI Plan
+                </Button>
+             </DialogTrigger>
+             <DialogContent className="sm:max-w-md">
+               <DialogHeader>
+                 <DialogTitle>AI Assistant</DialogTitle>
+                 <DialogDescription>Let Gemini help you plan your week together.</DialogDescription>
+               </DialogHeader>
+               <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label>Add Context (Optional)</Label>
+                    <Textarea 
+                      placeholder="e.g. We want something chill, under $50, maybe Italian food?" 
+                      value={aiContext}
+                      onChange={(e) => setAiContext(e.target.value)}
+                      className="resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 items-start" onClick={() => alert(`Mock: Generating date ideas with context: ${aiContext}`)}>
+                      <div className="flex items-center font-semibold text-primary"><Sparkles className="mr-2" size={14} /> Date Ideas</div>
+                      <span className="text-[10px] text-muted-foreground">Based on your vibes</span>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start h-12" onClick={() => alert("Mock: Checking calendars...")}>
-                      <CalendarIcon className="mr-2 text-primary" size={16} /> Find Free Time
+                    <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 items-start" onClick={() => alert("Mock: Checking calendars...")}>
+                      <div className="flex items-center font-semibold text-primary"><CalendarIcon className="mr-2" size={14} /> Find Time</div>
+                      <span className="text-[10px] text-muted-foreground">Scan for free slots</span>
                     </Button>
-                 </div>
-               </DialogContent>
-             </Dialog>
-           </div>
-        </div>
-
-        {/* Avatars */}
-        <div className="flex items-center gap-8 z-10 mt-6">
-          <div className="flex flex-col items-center">
-             <TamagotchiAvatar src={user.avatar} mood={user.mood} size="lg" />
-             <span className="text-xs font-bold mt-3 text-muted-foreground bg-white/50 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
-               You
-             </span>
-          </div>
-          
-          <div className="flex flex-col items-center justify-center mb-8">
-             <motion.div 
-               animate={{ scale: [1, 1.2, 1] }} 
-               transition={{ duration: 2, repeat: Infinity }}
-             >
-               <Heart className="text-rose-400 fill-rose-400 drop-shadow-lg" size={32} />
-             </motion.div>
-          </div>
-
-          <div className="flex flex-col items-center">
-             <TamagotchiAvatar src={partner.avatar} mood={partner.mood} size="lg" isPartner />
-             <span className="text-xs font-bold mt-3 text-muted-foreground bg-white/50 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
-               {partner.name}
-             </span>
-          </div>
+                  </div>
+               </div>
+             </DialogContent>
+           </Dialog>
         </div>
       </section>
 
@@ -292,14 +354,79 @@ export default function Home() {
 
       {/* Quick Actions (Mockup) */}
       <section className="grid grid-cols-2 gap-4">
-        <Button variant="outline" className="h-auto py-5 flex flex-col gap-2 rounded-2xl border-dashed border-primary/30 hover:bg-primary/5 hover:border-primary hover:shadow-md transition-all group">
-          <span className="text-3xl group-hover:scale-110 transition-transform duration-300">🎲</span>
-          <span className="text-xs font-bold text-primary">Roll for Date</span>
-        </Button>
-        <Button variant="outline" className="h-auto py-5 flex flex-col gap-2 rounded-2xl border-dashed border-secondary/30 hover:bg-secondary/5 hover:border-secondary hover:shadow-md transition-all group">
-          <span className="text-3xl group-hover:scale-110 transition-transform duration-300">💌</span>
-          <span className="text-xs font-bold text-secondary">Send Love Note</span>
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="h-auto py-5 flex flex-col gap-2 rounded-2xl border-dashed border-primary/30 hover:bg-primary/5 hover:border-primary hover:shadow-md transition-all group">
+              <span className="text-3xl group-hover:scale-110 transition-transform duration-300">🎲</span>
+              <span className="text-xs font-bold text-primary">Roll for Date</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-center">Tonight's Date Plan</DialogTitle>
+            </DialogHeader>
+            <div className="py-8 flex flex-col items-center justify-center">
+              {isRolling ? (
+                 <motion.div 
+                   animate={{ rotate: 360 }}
+                   transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+                 >
+                   <Dices size={48} className="text-primary" />
+                 </motion.div>
+              ) : rollResult ? (
+                 <motion.div 
+                   initial={{ scale: 0.5, opacity: 0 }}
+                   animate={{ scale: 1, opacity: 1 }}
+                   className="text-center space-y-4"
+                 >
+                   <div className="text-5xl">✨</div>
+                   <h3 className="text-xl font-bold font-display text-foreground">{rollResult}</h3>
+                 </motion.div>
+              ) : (
+                <div className="text-center text-muted-foreground">
+                   <Dices size={48} className="mx-auto mb-4 opacity-50" />
+                   <p>Tap the button below to let fate decide!</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter className="sm:justify-center">
+              <Button onClick={handleRollDate} disabled={isRolling} className="w-full">
+                {rollResult ? 'Roll Again' : 'Roll the Dice'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Drawer>
+          <DrawerTrigger asChild>
+            <Button variant="outline" className="h-auto py-5 flex flex-col gap-2 rounded-2xl border-dashed border-secondary/30 hover:bg-secondary/5 hover:border-secondary hover:shadow-md transition-all group">
+              <span className="text-3xl group-hover:scale-110 transition-transform duration-300">💌</span>
+              <span className="text-xs font-bold text-secondary">Send Love Note</span>
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent>
+             <div className="mx-auto w-full max-w-sm p-6 space-y-4">
+               <DrawerHeader className="p-0 mb-4">
+                 <DrawerTitle>Send a Love Note</DrawerTitle>
+               </DrawerHeader>
+               
+               <div className="space-y-2">
+                 <Label>Your Message</Label>
+                 <Textarea 
+                   placeholder="Thinking of you..." 
+                   value={loveNote}
+                   onChange={(e) => setLoveNote(e.target.value)}
+                   className="min-h-[120px] resize-none text-base"
+                 />
+               </div>
+
+               <Button onClick={handleSendLoveNote} disabled={isSendingNote || !loveNote.trim()} className="w-full h-12 text-lg">
+                 {isSendingNote ? <Loader2 className="animate-spin" /> : <Send className="mr-2" size={18} />}
+                 Send to {partner.name}
+               </Button>
+             </div>
+          </DrawerContent>
+        </Drawer>
       </section>
     </div>
   );
