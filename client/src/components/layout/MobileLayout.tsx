@@ -44,14 +44,15 @@ export function MobileLayout({ children }: { children: React.ReactNode }) {
 
 function NavLink({ to, icon: Icon, label, active }: { to: string, icon: any, label: string, active: boolean }) {
   return (
-    <Link href={to}>
-      <a className={cn(
+    <Link 
+      href={to}
+      className={cn(
         "flex flex-col items-center justify-center w-16 h-full space-y-1 transition-colors duration-200 tap-active",
         active ? "text-primary" : "text-muted-foreground hover:text-foreground"
-      )}>
-        <Icon size={24} strokeWidth={active ? 2.5 : 2} />
-        <span className="text-[10px] font-medium">{label}</span>
-      </a>
+      )}
+    >
+      <Icon size={24} strokeWidth={active ? 2.5 : 2} />
+      <span className="text-[10px] font-medium">{label}</span>
     </Link>
   );
 }
@@ -75,11 +76,10 @@ function AddItemFab() {
     addItem({
       title,
       type: type as any,
-      bucket: activeBucket, // Default to current view or joint
+      bucket: activeBucket,
       coinsReward: parseInt(coins),
       dueDate: date,
       syncToCalendar: syncCalendar,
-      reminders: reminder ? ['10:00 AM'] : undefined,
       priority: priority as any,
       frequency: frequency === 'once' ? undefined : frequency as any,
       assigneeId: assignee === 'unassigned' ? undefined : assignee,
