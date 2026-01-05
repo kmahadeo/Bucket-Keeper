@@ -2,17 +2,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save, Calendar, RefreshCw } from 'lucide-react';
-import { Link } from 'wouter';
+import { ArrowLeft, Save, Calendar, LogOut, Trash2, Shield, User, Bell } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
 import { useState } from 'react';
 import { useTheme } from '@/components/theme-provider';
 import { useApp } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
-  const { apiKey, setApiKey } = useApp();
+  const { apiKey, setApiKey, user } = useApp();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   const [localKey, setLocalKey] = useState(apiKey);
   
@@ -22,6 +34,16 @@ export default function Settings() {
       title: "Settings Saved",
       description: "Your preferences and API key have been updated.",
     });
+  };
+
+  const handleLogout = () => {
+    toast({ title: "Logged Out", description: "Come back soon!" });
+    setLocation('/login'); // Hypothetical route
+  };
+
+  const handleDeleteAccount = () => {
+    toast({ title: "Account Deleted", description: "We're sad to see you go.", variant: "destructive" });
+    setLocation('/login');
   };
 
   return (
@@ -36,7 +58,22 @@ export default function Settings() {
       </div>
 
       <div className="space-y-8">
-        {/* Profile / Pairing */}
+        {/* Account Section */}
+        <section className="space-y-4">
+           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider border-b pb-2">Account</h2>
+           <div className="flex items-center gap-4 p-4 bg-card border rounded-xl">
+             <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-xl">
+               {user.name[0]}
+             </div>
+             <div>
+               <h3 className="font-bold">{user.name}</h3>
+               <p className="text-xs text-muted-foreground">kaushik@example.com</p>
+             </div>
+             <Button variant="ghost" size="sm" className="ml-auto">Edit</Button>
+           </div>
+        </section>
+
+        {/* Pairing */}
         <section className="space-y-4">
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider border-b pb-2">Pairing</h2>
           <div className="bg-card p-4 rounded-xl border space-y-4">
@@ -53,7 +90,7 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Calendar Sync */}
+        {/* Integrations */}
         <section className="space-y-4">
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider border-b pb-2">Integrations</h2>
           <Link href="/calendar-sync">
@@ -114,14 +151,44 @@ export default function Settings() {
 
            <div className="flex items-center justify-between">
              <div className="space-y-0.5">
-               <Label>Daily Reminders</Label>
+               <Label>Push Notifications</Label>
+               <p className="text-xs text-muted-foreground">Reminders & Love Notes</p>
              </div>
              <Switch defaultChecked />
            </div>
         </section>
 
-        <div className="pt-4">
-          <Button onClick={handleSave} className="w-full h-12 text-lg rounded-xl">
+        {/* Danger Zone */}
+        <section className="space-y-4 pt-4">
+           <Button variant="outline" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleLogout}>
+             <LogOut className="mr-2" size={16} /> Log Out
+           </Button>
+
+           <AlertDialog>
+             <AlertDialogTrigger asChild>
+               <Button variant="ghost" className="w-full text-destructive/70 hover:text-destructive text-xs">
+                 <Trash2 className="mr-2" size={14} /> Delete Account & Data
+               </Button>
+             </AlertDialogTrigger>
+             <AlertDialogContent>
+               <AlertDialogHeader>
+                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                 <AlertDialogDescription>
+                   This action cannot be undone. This will permanently delete your account, earned coins, and memories.
+                 </AlertDialogDescription>
+               </AlertDialogHeader>
+               <AlertDialogFooter>
+                 <AlertDialogCancel>Cancel</AlertDialogCancel>
+                 <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                   Delete Account
+                 </AlertDialogAction>
+               </AlertDialogFooter>
+             </AlertDialogContent>
+           </AlertDialog>
+        </section>
+
+        <div className="sticky bottom-4">
+          <Button onClick={handleSave} className="w-full h-12 text-lg rounded-xl shadow-lg">
             <Save className="mr-2" size={18} />
             Save Changes
           </Button>

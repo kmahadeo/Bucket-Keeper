@@ -9,12 +9,14 @@ import Store from "@/pages/Store";
 import Archive from "@/pages/Archive";
 import Settings from "@/pages/Settings";
 import CalendarSync from "@/pages/CalendarSync";
+import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <MobileLayout>
       <Switch>
+        <Route path="/login" component={Login} />
         <Route path="/" component={Home} />
         <Route path="/buckets" component={Buckets} />
         <Route path="/store" component={Store} />

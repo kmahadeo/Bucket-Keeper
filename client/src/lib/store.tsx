@@ -93,6 +93,7 @@ interface AppState {
   updateMood: (mood: Mood) => void;
   redeemReward: (rewardId: string) => void;
   deleteItem: (id: string) => void;
+  addReward: (reward: Omit<Reward, 'id'>) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -197,6 +198,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const addReward = (reward: Omit<Reward, 'id'>) => {
+    // In a real app, this would be an API call
+    console.log("Mock adding reward to store:", reward);
+  };
+
   return (
     <AppContext.Provider value={{
       user,
@@ -211,7 +217,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toggleItem,
       updateMood,
       redeemReward,
-      deleteItem
+      deleteItem,
+      addReward // Exported
     }}>
       {children}
     </AppContext.Provider>
