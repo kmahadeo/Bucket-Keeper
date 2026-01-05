@@ -9,24 +9,18 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
+  DrawerClose,
+  DrawerFooter
 } from "@/components/ui/drawer"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Store() {
-  const { rewards, user, redeemReward, addReward } = useApp(); // Need addReward in store
-  const [newRewardTitle, setNewRewardTitle] = useState('');
-  const [newRewardCost, setNewRewardCost] = useState('50');
-  const [newRewardType, setNewRewardType] = useState('personal_treat');
-
-  const handleAddReward = () => {
-    // Logic to add reward via store would go here
-    // Mocking for now as store update is next step
-    console.log("Adding reward:", { newRewardTitle, newRewardCost, newRewardType });
-    setNewRewardTitle('');
-  };
+  const { rewards, user, redeemReward, addReward } = useApp();
+  const { toast } = useToast();
 
   return (
     <div className="p-6 pb-24">
@@ -47,7 +41,12 @@ export default function Store() {
           <p className="text-xs text-muted-foreground mt-1 mb-3">
             Based on your recent "Gym" streak, you should add a massage reward!
           </p>
-          <Button size="sm" variant="secondary" className="h-7 text-xs bg-white/50 backdrop-blur-sm">
+          <Button size="sm" variant="secondary" className="h-7 text-xs bg-white/50 backdrop-blur-sm" onClick={() => addReward({
+            title: 'Massage',
+            cost: 100,
+            type: 'partner_gift',
+            icon: '💆‍♂️'
+          })}>
             Add "Massage" (100 🪙)
           </Button>
         </div>
@@ -97,9 +96,30 @@ export default function Store() {
   );
 }
 
-function AddRewardButton({ type }: { type: string }) {
+function AddRewardButton({ type }: { type: any }) {
+  const { addReward } = useApp();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [cost, setCost] = useState('50');
+
+  const handleCreate = () => {
+    if (!title.trim()) return;
+    
+    addReward({
+      title,
+      cost: parseInt(cost),
+      type,
+      icon: type === 'joint_goal' ? '🎯' : (type === 'partner_gift' ? '🎁' : '🍦')
+    });
+    
+    toast({ title: "Reward Added", description: `${title} is now available in the store.` });
+    setOpen(false);
+    setTitle('');
+  };
+
   return (
-    <Drawer>
+    <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
         <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary hover:bg-primary/10">
           <Plus size={12} className="mr-1" /> Add Custom
@@ -113,11 +133,11 @@ function AddRewardButton({ type }: { type: string }) {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Title</Label>
-              <Input placeholder="e.g. Breakfast in Bed" />
+              <Input placeholder="e.g. Breakfast in Bed" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label>Cost (Coins)</Label>
-               <Select defaultValue="50">
+               <Select value={cost} onValueChange={setCost}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -129,7 +149,7 @@ function AddRewardButton({ type }: { type: string }) {
                 </SelectContent>
                </Select>
             </div>
-            <Button className="w-full">Create Reward</Button>
+            <Button className="w-full" onClick={handleCreate}>Create Reward</Button>
           </div>
         </div>
       </DrawerContent>

@@ -16,7 +16,7 @@ export type Mood = 'happy' | 'calm' | 'stressed' | 'anxious' | 'irritated' | 'sa
 
 export type BucketType = 'personal' | 'partner' | 'joint';
 
-export type ItemType = 'task' | 'event' | 'routine';
+export type ItemType = 'task' | 'event' | 'routine' | 'calendar' | 'schedule';
 
 export type BucketItem = {
   id: string;
@@ -29,6 +29,8 @@ export type BucketItem = {
   coinsReward: number;
   ownerId?: string; // Who created it
   assigneeId?: string; // Who should do it
+  syncToCalendar?: boolean; // New: Sync flag
+  reminders?: string[]; // New: Reminder times
 };
 
 export type Reward = {
@@ -65,10 +67,10 @@ const MOCK_PARTNER: User = {
 const INITIAL_ITEMS: BucketItem[] = [
   { id: '1', title: 'Buy groceries for taco night', type: 'task', bucket: 'joint', coinsReward: 10, completed: false },
   { id: '2', title: 'Morning Run (5k)', type: 'routine', bucket: 'personal', coinsReward: 5, completed: true, completedAt: new Date() },
-  { id: '3', title: 'Date Night: Sushi', type: 'event', bucket: 'joint', dueDate: addDays(new Date(), 2), coinsReward: 50, completed: false },
+  { id: '3', title: 'Date Night: Sushi', type: 'event', bucket: 'joint', dueDate: addDays(new Date(), 2), coinsReward: 50, completed: false, syncToCalendar: true },
   { id: '4', title: 'Call Mom', type: 'task', bucket: 'personal', dueDate: new Date(), coinsReward: 10, completed: false },
   { id: '5', title: 'Book flights for Paris', type: 'task', bucket: 'joint', coinsReward: 100, completed: false },
-  { id: '6', title: 'Margaux\'s Dentist Appt', type: 'event', bucket: 'partner', dueDate: addDays(new Date(), 5), coinsReward: 0, completed: false },
+  { id: '6', title: 'Margaux\'s Dentist Appt', type: 'event', bucket: 'partner', dueDate: addDays(new Date(), 5), coinsReward: 0, completed: false, syncToCalendar: true },
 ];
 
 const INITIAL_REWARDS: Reward[] = [
@@ -102,7 +104,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(MOCK_USER);
   const [partner, setPartner] = useState<User>(MOCK_PARTNER); // In a real app, this would be fetched
   const [items, setItems] = useState<BucketItem[]>(INITIAL_ITEMS);
-  const [rewards] = useState<Reward[]>(INITIAL_REWARDS);
+  const [rewards, setRewards] = useState<Reward[]>(INITIAL_REWARDS);
   const [activeBucket, setActiveBucket] = useState<BucketType>('joint');
   const [apiKey, setApiKey] = useState<string>('');
 
@@ -119,12 +121,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (savedKey) {
       setApiKey(savedKey);
     }
+    const savedRewards = localStorage.getItem('bk_rewards');
+    if (savedRewards) {
+      setRewards(JSON.parse(savedRewards));
+    }
   }, []);
 
   // Save to local storage on change
   useEffect(() => {
     localStorage.setItem('bk_items', JSON.stringify(items));
   }, [items]);
+
+  useEffect(() => {
+    localStorage.setItem('bk_rewards', JSON.stringify(rewards));
+  }, [rewards]);
 
   // Save API Key
   const handleSetApiKey = (key: string) => {
@@ -198,9 +208,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addReward = (reward: Omit<Reward, 'id'>) => {
-    // In a real app, this would be an API call
-    console.log("Mock adding reward to store:", reward);
+  const addReward = (newReward: Omit<Reward, 'id'>) => {
+    const reward: Reward = {
+      ...newReward,
+      id: Math.random().toString(36).substr(2, 9),
+    };
+    setRewards((prev) => [...prev, reward]);
   };
 
   return (
@@ -218,7 +231,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateMood,
       redeemReward,
       deleteItem,
-      addReward // Exported
+      addReward
     }}>
       {children}
     </AppContext.Provider>

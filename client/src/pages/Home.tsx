@@ -4,7 +4,7 @@ import { CoinDisplay } from '@/components/ui/CoinDisplay';
 import { BucketItem } from '@/components/ui/BucketItem';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2, Calendar as CalendarIcon, Wand2, Dices, Send } from 'lucide-react';
+import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2, Calendar as CalendarIcon, Wand2, Dices, Send, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'wouter';
 import { useState } from 'react';
@@ -32,6 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
+import { getUpcomingHolidays } from '@/lib/holidays';
 
 export default function Home() {
   const { user, partner, items, apiKey, updateMood } = useApp();
@@ -51,6 +52,9 @@ export default function Home() {
   // Love Note State
   const [loveNote, setLoveNote] = useState('');
   const [isSendingNote, setIsSendingNote] = useState(false);
+
+  // Holidays
+  const upcomingHolidays = getUpcomingHolidays(45); // 45 days ahead
 
   const todaysItems = items
     .filter(i => !i.completed)
@@ -241,6 +245,28 @@ export default function Home() {
            </Dialog>
         </div>
       </section>
+
+      {/* Holiday Alert */}
+      <AnimatePresence>
+        {upcomingHolidays.length > 0 && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-4 rounded-2xl flex items-center gap-3 overflow-hidden"
+          >
+            <div className="bg-indigo-100 dark:bg-indigo-900 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
+              <CalendarDays size={20} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-100">Upcoming Holiday</h3>
+              <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                {upcomingHolidays[0].name} is coming up! AI suggests planning ahead.
+              </p>
+            </div>
+            <Button size="sm" variant="ghost" className="text-indigo-600">Plan</Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* AI Conflict Alert (Demo) */}
       <AnimatePresence>

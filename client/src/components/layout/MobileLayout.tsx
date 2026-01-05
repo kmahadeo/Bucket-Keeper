@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { Home, ListTodo, ShoppingBag, Archive, Plus } from 'lucide-react';
+import { Home, ListTodo, ShoppingBag, Archive, Plus, Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -7,6 +7,11 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from 
 import { useApp } from '@/lib/store';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
 
 export function MobileLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -53,50 +58,78 @@ function AddItemFab() {
   const { addItem, activeBucket } = useApp();
   const [title, setTitle] = useState('');
   const [coins, setCoins] = useState('10');
+  const [type, setType] = useState('task');
   const [open, setOpen] = useState(false);
+  const [syncCalendar, setSyncCalendar] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [reminder, setReminder] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     addItem({
       title,
-      type: 'task',
+      type: type as any,
       bucket: activeBucket, // Default to current view or joint
       coinsReward: parseInt(coins),
+      dueDate: date,
+      syncToCalendar: syncCalendar,
+      reminders: reminder ? ['10:00 AM'] : undefined
     });
     setTitle('');
     setOpen(false);
+    // Reset form
+    setType('task');
+    setSyncCalendar(false);
+    setDate(undefined);
+    setReminder(false);
   };
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
         <div className="-mt-6 p-1 bg-background rounded-full shadow-lg cursor-pointer tap-active">
-          <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-primary/30 shadow-xl text-white">
+          <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-primary/30 shadow-xl text-white hover:scale-105 transition-transform">
             <Plus size={28} strokeWidth={3} />
           </div>
         </div>
       </DrawerTrigger>
-      <DrawerContent className="max-w-md mx-auto">
-        <div className="mx-auto w-full max-w-sm">
+      <DrawerContent className="max-w-md mx-auto h-[85vh]">
+        <div className="mx-auto w-full max-w-sm h-full flex flex-col">
           <DrawerHeader>
-            <DrawerTitle>Add to Bucket</DrawerTitle>
+            <DrawerTitle>Add to {activeBucket} Bucket</DrawerTitle>
           </DrawerHeader>
-          <form onSubmit={handleSubmit} className="p-4 space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">What needs doing?</label>
+          <form onSubmit={handleSubmit} className="p-4 space-y-6 flex-1 overflow-y-auto">
+            <div className="space-y-3">
+              <Label htmlFor="title" className="text-base">What needs doing?</Label>
               <Input 
+                id="title"
                 placeholder="e.g. Plan anniversary dinner..." 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
-                className="text-lg"
+                className="text-lg h-12"
               />
             </div>
             
-            <div className="flex gap-4">
-              <div className="flex-1 space-y-2">
-                 <label className="text-sm font-medium">Coins Reward</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={type} onValueChange={setType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="task">Task ✅</SelectItem>
+                    <SelectItem value="event">Event 📅</SelectItem>
+                    <SelectItem value="routine">Routine 🔄</SelectItem>
+                    <SelectItem value="calendar">Calendar 📆</SelectItem>
+                    <SelectItem value="schedule">Schedule 🕒</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                 <Label>Reward</Label>
                  <Select value={coins} onValueChange={setCoins}>
                   <SelectTrigger>
                     <SelectValue />
@@ -110,16 +143,67 @@ function AddItemFab() {
                   </SelectContent>
                  </Select>
               </div>
-              <div className="flex-1 space-y-2">
-                <label className="text-sm font-medium">Type</label>
-                <div className="flex h-10 items-center px-3 border rounded-md text-sm text-muted-foreground bg-muted/50">
-                  Task
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg text-blue-600">
+                    <Calendar size={18} />
+                  </div>
+                  <div>
+                    <Label className="cursor-pointer">Due Date</Label>
+                    <div className="text-xs text-muted-foreground">
+                      {date ? format(date, "PPP") : "No date set"}
+                    </div>
+                  </div>
                 </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">Pick Date</Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <CalendarComponent
+                      mode="single"
+                      selected={date}
+                      onSelect={setDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {date && (
+                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg text-green-600">
+                      <Clock size={18} />
+                    </div>
+                    <div>
+                      <Label htmlFor="sync" className="cursor-pointer">Sync to Calendar</Label>
+                      <p className="text-xs text-muted-foreground">Google / Apple / Outlook</p>
+                    </div>
+                  </div>
+                  <Switch id="sync" checked={syncCalendar} onCheckedChange={setSyncCalendar} />
+                </div>
+              )}
+
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-100 dark:bg-amber-900 rounded-lg text-amber-600">
+                      <Clock size={18} />
+                    </div>
+                    <div>
+                      <Label htmlFor="remind" className="cursor-pointer">Set Reminder</Label>
+                      <p className="text-xs text-muted-foreground">Push notifications</p>
+                    </div>
+                  </div>
+                  <Switch id="remind" checked={reminder} onCheckedChange={setReminder} />
               </div>
             </div>
 
-            <Button type="submit" className="w-full text-lg h-12 rounded-xl mt-4">
-              Add to {activeBucket} bucket
+            <Button type="submit" className="w-full text-lg h-12 rounded-xl mt-auto">
+              Add Item
             </Button>
           </form>
         </div>
