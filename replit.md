@@ -76,6 +76,19 @@ Preferred communication style: Simple, everyday language.
 - **Zod**: Schema validation with `drizzle-zod` integration
 - **vaul**: Drawer component for mobile UI patterns
 
+### Google Calendar Integration
+- **Provider**: Google Calendar API via Replit Connectors
+- **Features**:
+  - Real-time connection status checking
+  - Fetch upcoming calendar events
+  - Push bucket items with due dates to Google Calendar
+  - Bi-directional sync from Calendar Sync page
+- **Endpoints**:
+  - `GET /api/calendar/status` - Check if calendar is connected
+  - `GET /api/calendar/events` - Fetch upcoming events
+  - `POST /api/calendar/sync-item` - Push item to calendar
+- **Note**: iCloud Calendar not supported due to Apple API restrictions for web apps
+
 ### Development Tools
 - **Drizzle Kit**: Database migrations via `db:push` command
 - **Replit Vite Plugins**: Dev banner, cartographer, runtime error overlay
