@@ -1,6 +1,7 @@
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { AppProvider } from "@/lib/store";
+import { ThemeProvider } from "@/components/theme-provider";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import Home from "@/pages/Home";
 import Buckets from "@/pages/Buckets";
@@ -26,10 +27,12 @@ function Router() {
 
 function App() {
   return (
-    <AppProvider>
-      <Toaster />
-      <Router />
-    </AppProvider>
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+      <AppProvider>
+        <Toaster />
+        <Router />
+      </AppProvider>
+    </ThemeProvider>
   );
 }
 

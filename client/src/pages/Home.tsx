@@ -4,10 +4,11 @@ import { CoinDisplay } from '@/components/ui/CoinDisplay';
 import { BucketItem } from '@/components/ui/BucketItem';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Calendar } from 'lucide-react';
+import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'wouter';
 import { useState } from 'react';
+import { generateConflictResolution } from '@/lib/gemini';
 import {
   Dialog,
   DialogContent,
@@ -15,18 +16,43 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
-  DialogClose
+  DialogFooter
 } from "@/components/ui/dialog"
 
 export default function Home() {
-  const { user, partner, items } = useApp();
+  const { user, partner, items, apiKey } = useApp();
   const [conflictResolved, setConflictResolved] = useState(false);
+  
+  // AI State
+  const [loading, setLoading] = useState(false);
+  const [aiOptions, setAiOptions] = useState<{optionA: string, optionB: string} | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const todaysItems = items
     .filter(i => !i.completed)
     .sort((a, b) => (b.coinsReward - a.coinsReward))
     .slice(0, 3);
+
+  const handleResolveConflict = async () => {
+    if (!apiKey) {
+      setAiOptions({
+        optionA: "Move Date Night to Saturday at 7:00 PM.",
+        optionB: "Shorten Poker Night to end by 8:00 PM."
+      });
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await generateConflictResolution("Date Night", "Poker Night", apiKey);
+      setAiOptions(result);
+    } catch (e) {
+      setError("Failed to generate options. Please check your API Key.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-8">
@@ -94,7 +120,9 @@ export default function Home() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <Dialog>
+            <Dialog onOpenChange={(open) => {
+              if (open && !aiOptions) handleResolveConflict();
+            }}>
               <DialogTrigger asChild>
                 <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 p-4 rounded-xl flex items-start gap-3 cursor-pointer tap-active">
                   <div className="bg-orange-100 dark:bg-orange-900 p-2 rounded-full text-orange-600 dark:text-orange-400">
@@ -115,29 +143,42 @@ export default function Home() {
                     AI Conflict Resolution
                   </DialogTitle>
                   <DialogDescription>
-                    Gemini noticed a double-booking on Friday evening. Here are some smart compromises based on your calendars.
+                    {apiKey ? "Gemini is analyzing your calendars..." : "Gemini noticed a double-booking. (Add API Key in settings for real AI)"}
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-2">
-                  <div className="bg-muted/50 p-3 rounded-lg border border-muted text-sm space-y-2">
-                     <div className="flex justify-between font-medium">
-                       <span className="text-muted-foreground">Option A</span>
-                       <span className="text-green-600 font-bold">Recommended</span>
-                     </div>
-                     <p>Move <strong>Date Night</strong> to Saturday at 7:00 PM. Keep Poker Night as is.</p>
-                  </div>
-                  
-                  <div className="bg-muted/30 p-3 rounded-lg border border-muted text-sm opacity-80">
-                     <div className="flex justify-between font-medium">
-                       <span className="text-muted-foreground">Option B</span>
-                     </div>
-                     <p>Shorten <strong>Poker Night</strong> to end by 8:00 PM. Start Date Night late.</p>
-                  </div>
+                <div className="space-y-4 py-2 min-h-[150px] flex flex-col justify-center">
+                  {loading ? (
+                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-8">
+                       <Loader2 className="animate-spin" />
+                       <span className="text-xs">Consulting the Oracle...</span>
+                    </div>
+                  ) : error ? (
+                    <div className="text-destructive text-sm text-center bg-destructive/10 p-4 rounded-lg">
+                      {error}
+                    </div>
+                  ) : aiOptions ? (
+                    <>
+                      <div className="bg-muted/50 p-3 rounded-lg border border-muted text-sm space-y-2 animate-in fade-in slide-in-from-bottom-2">
+                         <div className="flex justify-between font-medium">
+                           <span className="text-muted-foreground">Option A</span>
+                           <span className="text-green-600 font-bold">Recommended</span>
+                         </div>
+                         <p>{aiOptions.optionA}</p>
+                      </div>
+                      
+                      <div className="bg-muted/30 p-3 rounded-lg border border-muted text-sm opacity-80 animate-in fade-in slide-in-from-bottom-3 delay-100">
+                         <div className="flex justify-between font-medium">
+                           <span className="text-muted-foreground">Option B</span>
+                         </div>
+                         <p>{aiOptions.optionB}</p>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
 
                 <DialogFooter className="sm:justify-start gap-2">
-                  <Button type="button" onClick={() => setConflictResolved(true)} className="flex-1 bg-primary">
+                  <Button type="button" onClick={() => setConflictResolved(true)} className="flex-1 bg-primary" disabled={loading || !!error}>
                     Accept Option A
                   </Button>
                   <Button type="button" variant="secondary" onClick={() => setConflictResolved(true)} className="flex-1">

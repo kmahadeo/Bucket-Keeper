@@ -85,6 +85,8 @@ interface AppState {
   items: BucketItem[];
   rewards: Reward[];
   activeBucket: BucketType;
+  apiKey: string;
+  setApiKey: (key: string) => void;
   setActiveBucket: (b: BucketType) => void;
   addItem: (item: Omit<BucketItem, 'id' | 'completed' | 'completedAt'>) => void;
   toggleItem: (id: string) => void;
@@ -101,6 +103,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<BucketItem[]>(INITIAL_ITEMS);
   const [rewards] = useState<Reward[]>(INITIAL_REWARDS);
   const [activeBucket, setActiveBucket] = useState<BucketType>('joint');
+  const [apiKey, setApiKey] = useState<string>('');
 
   // Load from local storage on mount (mock persistence)
   useEffect(() => {
@@ -111,12 +114,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return value;
       }));
     }
+    const savedKey = localStorage.getItem('bk_api_key');
+    if (savedKey) {
+      setApiKey(savedKey);
+    }
   }, []);
 
   // Save to local storage on change
   useEffect(() => {
     localStorage.setItem('bk_items', JSON.stringify(items));
   }, [items]);
+
+  // Save API Key
+  const handleSetApiKey = (key: string) => {
+    setApiKey(key);
+    localStorage.setItem('bk_api_key', key);
+  };
 
   const addItem = (newItem: Omit<BucketItem, 'id' | 'completed' | 'completedAt'>) => {
     const item: BucketItem = {
@@ -191,6 +204,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       items,
       rewards,
       activeBucket,
+      apiKey,
+      setApiKey: handleSetApiKey,
       setActiveBucket,
       addItem,
       toggleItem,

@@ -5,12 +5,27 @@ import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Save } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState } from 'react';
+import { useTheme } from '@/components/theme-provider';
+import { useApp } from '@/lib/store';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Settings() {
-  const [apiKey, setApiKey] = useState('');
+  const { theme, setTheme } = useTheme();
+  const { apiKey, setApiKey } = useApp();
+  const { toast } = useToast();
   
+  const [localKey, setLocalKey] = useState(apiKey);
+  
+  const handleSave = () => {
+    setApiKey(localKey);
+    toast({
+      title: "Settings Saved",
+      description: "Your preferences and API key have been updated.",
+    });
+  };
+
   return (
-    <div className="p-6 bg-background min-h-screen">
+    <div className="p-6 bg-background min-h-screen text-foreground">
       <div className="flex items-center gap-4 mb-8">
         <Link href="/">
           <Button variant="ghost" size="icon" className="-ml-2">
@@ -47,7 +62,7 @@ export default function Settings() {
                <Label>Enable Gemini AI</Label>
                <p className="text-xs text-muted-foreground">Smart suggestions & conflict detection</p>
              </div>
-             <Switch />
+             <Switch checked={!!apiKey} onCheckedChange={() => {}} disabled />
            </div>
 
            <div className="space-y-2">
@@ -55,8 +70,8 @@ export default function Settings() {
              <Input 
                type="password" 
                placeholder="AIzaSy..." 
-               value={apiKey}
-               onChange={(e) => setApiKey(e.target.value)}
+               value={localKey}
+               onChange={(e) => setLocalKey(e.target.value)}
              />
              <p className="text-xs text-muted-foreground">
                Your key is stored locally on your device.
@@ -72,7 +87,10 @@ export default function Settings() {
              <div className="space-y-0.5">
                <Label>Dark Mode</Label>
              </div>
-             <Switch />
+             <Switch 
+               checked={theme === 'dark'}
+               onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+             />
            </div>
 
            <div className="flex items-center justify-between">
@@ -84,7 +102,7 @@ export default function Settings() {
         </section>
 
         <div className="pt-4">
-          <Button className="w-full h-12 text-lg rounded-xl">
+          <Button onClick={handleSave} className="w-full h-12 text-lg rounded-xl">
             <Save className="mr-2" size={18} />
             Save Changes
           </Button>
