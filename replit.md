@@ -40,7 +40,17 @@ Preferred communication style: Simple, everyday language.
   - `gemini-2.5-flash` - Fast text generation
   - `gemini-2.5-pro` - Advanced reasoning
   - `gemini-2.5-flash-image` - Image generation
-- **Features**: Conflict resolution suggestions, date idea generation, chat capabilities
+- **Features**: 
+  - Daily plan generation based on real pending tasks and completion history
+  - Bucket insights with per-bucket analysis and balance tracking
+  - Store recommendations based on coins, rewards, and productivity patterns
+  - Conflict resolution suggestions using overdue items and workload balance
+  - Chat capabilities
+- **Context System**: `server/ai/context.ts` contains `buildCoupleContext()` utility that:
+  - Aggregates real data from database (items, rewards, moods, stats)
+  - Scopes data to requesting user and partner only for security
+  - Calculates productivity patterns, streaks, and balance scores
+  - Formats context for different scopes (home, buckets, store)
 - **Batch Processing**: Utility for concurrent AI requests with rate limiting and retries
 
 ### Key Design Patterns
