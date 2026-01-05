@@ -39,11 +39,12 @@ export default function Home() {
   const { toast } = useToast();
   const [conflictResolved, setConflictResolved] = useState(false);
   
-  // AI State
+  // AI State - Using Real Context from Backend
   const [loading, setLoading] = useState(false);
-  const [aiOptions, setAiOptions] = useState<{optionA: string, optionB: string} | null>(null);
+  const [dailyPlan, setDailyPlan] = useState<api.DailyPlan | null>(null);
+  const [conflictData, setConflictData] = useState<api.ConflictResolution | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [aiContext, setAiContext] = useState('');
+  const [aiLoaded, setAiLoaded] = useState(false);
 
   // Roll for Date State
   const [rollResult, setRollResult] = useState<string | null>(null);
@@ -66,14 +67,20 @@ export default function Home() {
     })
     .slice(0, 3);
 
-  const handleResolveConflict = async () => {
+  const loadAIInsights = async () => {
+    if (aiLoaded) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await api.resolveConflict("Date Night", "Poker Night", aiContext);
-      setAiOptions(result);
+      const [plan, conflict] = await Promise.all([
+        api.getDailyPlan(user.id),
+        api.getConflictResolution(user.id)
+      ]);
+      setDailyPlan(plan);
+      setConflictData(conflict);
+      setAiLoaded(true);
     } catch (e) {
-      setError("Failed to generate AI suggestions. Please try again.");
+      setError("Failed to load AI insights. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -262,38 +269,79 @@ export default function Home() {
              </DrawerContent>
            </Drawer>
 
-           <Dialog>
+           <Dialog onOpenChange={(open) => {
+             if (open && !aiLoaded) loadAIInsights();
+           }}>
              <DialogTrigger asChild>
                 <Button variant="secondary" size="sm" className="h-9 px-4 text-xs font-semibold bg-white/80 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/20 rounded-full text-indigo-600 dark:text-indigo-300 hover:bg-white/90 transition-all">
                   <Wand2 size={14} className="mr-1.5" />
                   AI Plan
                 </Button>
              </DialogTrigger>
-             <DialogContent className="sm:max-w-md">
+             <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
                <DialogHeader>
-                 <DialogTitle>AI Assistant</DialogTitle>
-                 <DialogDescription>Let Gemini help you plan your week together.</DialogDescription>
+                 <DialogTitle>Your AI Daily Plan</DialogTitle>
+                 <DialogDescription>Personalized insights based on your real tasks and patterns.</DialogDescription>
                </DialogHeader>
                <div className="space-y-4 py-2">
-                  <div className="space-y-2">
-                    <Label>Add Context (Optional)</Label>
-                    <Textarea 
-                      placeholder="e.g. We want something chill, under $50, maybe Italian food?" 
-                      value={aiContext}
-                      onChange={(e) => setAiContext(e.target.value)}
-                      className="resize-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 items-start" onClick={() => alert(`Mock: Generating date ideas with context: ${aiContext}`)}>
-                      <div className="flex items-center font-semibold text-primary"><Sparkles className="mr-2" size={14} /> Date Ideas</div>
-                      <span className="text-[10px] text-muted-foreground">Based on your vibes</span>
-                    </Button>
-                    <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 items-start" onClick={() => alert("Mock: Checking calendars...")}>
-                      <div className="flex items-center font-semibold text-primary"><CalendarIcon className="mr-2" size={14} /> Find Time</div>
-                      <span className="text-[10px] text-muted-foreground">Scan for free slots</span>
-                    </Button>
-                  </div>
+                  {loading ? (
+                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-8">
+                       <Loader2 className="animate-spin text-primary" size={32} />
+                       <span className="text-xs font-medium animate-pulse">Analyzing your data...</span>
+                    </div>
+                  ) : error ? (
+                    <div className="text-destructive text-sm text-center bg-destructive/10 p-4 rounded-lg border border-destructive/20">
+                      {error}
+                      <Button variant="ghost" size="sm" className="mt-2" onClick={loadAIInsights}>Try Again</Button>
+                    </div>
+                  ) : dailyPlan ? (
+                    <div className="space-y-4 animate-in fade-in">
+                      <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-xl border border-primary/20">
+                        <p className="text-sm font-medium">{dailyPlan.greeting}</p>
+                      </div>
+                      
+                      {dailyPlan.priorityTasks.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Focus Today</h4>
+                          <ul className="space-y-1">
+                            {dailyPlan.priorityTasks.map((task, i) => (
+                              <li key={i} className="text-sm flex items-start gap-2">
+                                <span className="text-primary">•</span>
+                                {task}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <h4 className="text-xs font-bold text-amber-700 dark:text-amber-300 mb-1">Insight</h4>
+                        <p className="text-sm text-amber-900 dark:text-amber-100">{dailyPlan.insight}</p>
+                      </div>
+                      
+                      <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                        <p className="text-sm text-green-900 dark:text-green-100">{dailyPlan.encouragement}</p>
+                      </div>
+                      
+                      {dailyPlan.conflictWarning && (
+                        <div className="bg-orange-50 dark:bg-orange-950/30 p-3 rounded-lg border border-orange-200 dark:border-orange-800">
+                          <h4 className="text-xs font-bold text-orange-700 dark:text-orange-300 mb-1">Heads Up</h4>
+                          <p className="text-sm text-orange-900 dark:text-orange-100">{dailyPlan.conflictWarning}</p>
+                        </div>
+                      )}
+                      
+                      {dailyPlan.rewardSuggestion && (
+                        <div className="bg-purple-50 dark:bg-purple-950/30 p-3 rounded-lg border border-purple-200 dark:border-purple-800">
+                          <h4 className="text-xs font-bold text-purple-700 dark:text-purple-300 mb-1">Reward Alert</h4>
+                          <p className="text-sm text-purple-900 dark:text-purple-100">{dailyPlan.rewardSuggestion}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="text-sm">Tap to load your personalized AI plan</p>
+                    </div>
+                  )}
                </div>
              </DialogContent>
            </Dialog>
@@ -340,9 +388,9 @@ export default function Home() {
         </div>
       </Link>
 
-      {/* AI Conflict Alert (Demo) */}
+      {/* AI Conflict Alert - Based on Real Data */}
       <AnimatePresence>
-        {!conflictResolved && (
+        {!conflictResolved && conflictData?.hasConflict && (
           <motion.div 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -350,7 +398,7 @@ export default function Home() {
             className="overflow-hidden"
           >
             <Dialog onOpenChange={(open) => {
-              if (open && !aiOptions) handleResolveConflict();
+              if (open && !aiLoaded) loadAIInsights();
             }}>
               <DialogTrigger asChild>
                 <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 p-4 rounded-2xl flex items-start gap-3 cursor-pointer tap-active relative overflow-hidden group">
@@ -364,9 +412,9 @@ export default function Home() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-md">Action Required</span>
                     </div>
-                    <h3 className="text-base font-bold text-orange-950 dark:text-orange-100 leading-tight">Schedule Conflict</h3>
+                    <h3 className="text-base font-bold text-orange-950 dark:text-orange-100 leading-tight">Attention Needed</h3>
                     <p className="text-xs text-orange-800 dark:text-orange-200 mt-1 line-clamp-2">
-                      "Date Night" overlaps with "Poker Night". Tap to view AI compromises.
+                      {conflictData.conflictDescription}
                     </p>
                   </div>
                 </div>
@@ -378,7 +426,7 @@ export default function Home() {
                     AI Resolution
                   </DialogTitle>
                   <DialogDescription>
-                    Gemini AI is analyzing the schedule conflict...
+                    Based on your actual tasks and schedule
                   </DialogDescription>
                 </DialogHeader>
 
@@ -386,35 +434,42 @@ export default function Home() {
                   {loading ? (
                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-8">
                        <Loader2 className="animate-spin text-primary" size={32} />
-                       <span className="text-xs font-medium animate-pulse">Consulting the Oracle...</span>
+                       <span className="text-xs font-medium animate-pulse">Analyzing your data...</span>
                     </div>
                   ) : error ? (
                     <div className="text-destructive text-sm text-center bg-destructive/10 p-4 rounded-lg border border-destructive/20">
                       {error}
+                      <Button variant="ghost" size="sm" className="mt-2" onClick={loadAIInsights}>Try Again</Button>
                     </div>
-                  ) : aiOptions ? (
+                  ) : conflictData ? (
                     <div className="grid gap-3">
                       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/50 shadow-sm animate-in fade-in slide-in-from-bottom-2">
                          <div className="flex justify-between items-center mb-2">
                            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Option A</span>
                            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Recommended</span>
                          </div>
-                         <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 leading-relaxed">{aiOptions.optionA}</p>
+                         <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 leading-relaxed">{conflictData.optionA}</p>
                       </div>
                       
                       <div className="bg-muted/30 p-4 rounded-xl border border-muted text-sm opacity-80 animate-in fade-in slide-in-from-bottom-3 delay-100">
                          <div className="flex justify-between font-medium mb-2">
                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option B</span>
                          </div>
-                         <p className="text-muted-foreground leading-relaxed">{aiOptions.optionB}</p>
+                         <p className="text-muted-foreground leading-relaxed">{conflictData.optionB}</p>
                       </div>
+                      
+                      {conflictData.balanceTip && (
+                        <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800 animate-in fade-in slide-in-from-bottom-4 delay-150">
+                          <p className="text-xs text-blue-800 dark:text-blue-200">{conflictData.balanceTip}</p>
+                        </div>
+                      )}
                     </div>
                   ) : null}
                 </div>
 
                 <DialogFooter className="sm:justify-start gap-2">
                   <Button type="button" onClick={() => setConflictResolved(true)} className="flex-1 bg-primary text-white shadow-md hover:shadow-lg transition-all" disabled={loading || !!error}>
-                    Accept A
+                    Got It
                   </Button>
                   <Button type="button" variant="ghost" onClick={() => setConflictResolved(true)} className="flex-1">
                     Dismiss

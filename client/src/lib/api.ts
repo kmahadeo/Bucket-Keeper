@@ -122,32 +122,92 @@ export async function updateUserMood(id: string, mood: string): Promise<User> {
   return res.json();
 }
 
-// --- AI Features ---
-export async function resolveConflict(event1: string, event2: string, context?: string): Promise<{ optionA: string; optionB: string }> {
+// --- AI Features (Using Real Context) ---
+
+export interface DailyPlan {
+  greeting: string;
+  priorityTasks: string[];
+  insight: string;
+  encouragement: string;
+  conflictWarning: string | null;
+  rewardSuggestion: string | null;
+}
+
+export interface BucketInsights {
+  status: 'on_track' | 'needs_attention' | 'falling_behind';
+  tip: string;
+  quickWin: string | null;
+}
+
+export interface StoreRecommendations {
+  recommendation: string;
+  motivation: string;
+  celebration: string | null;
+}
+
+export interface ConflictResolution {
+  hasConflict: boolean;
+  conflictDescription: string;
+  optionA: string;
+  optionB: string;
+  balanceTip: string | null;
+}
+
+export async function getDailyPlan(userId?: string): Promise<DailyPlan> {
+  const res = await fetch(`${API_BASE}/ai/daily-plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+  if (!res.ok) throw new Error('Failed to get daily plan');
+  return res.json();
+}
+
+export async function getBucketInsights(bucket: string, userId?: string): Promise<BucketInsights> {
+  const res = await fetch(`${API_BASE}/ai/bucket-insights`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bucket, userId }),
+  });
+  if (!res.ok) throw new Error('Failed to get bucket insights');
+  return res.json();
+}
+
+export async function getStoreRecommendations(userId?: string): Promise<StoreRecommendations> {
+  const res = await fetch(`${API_BASE}/ai/store-recommendations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+  if (!res.ok) throw new Error('Failed to get store recommendations');
+  return res.json();
+}
+
+export async function getConflictResolution(userId?: string): Promise<ConflictResolution> {
   const res = await fetch(`${API_BASE}/ai/conflict-resolution`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event1, event2, context }),
+    body: JSON.stringify({ userId }),
   });
   if (!res.ok) throw new Error('Failed to resolve conflict');
   return res.json();
 }
 
-export async function getAISuggestions(type: string, context?: string): Promise<{ suggestion: string }> {
+export async function getAISuggestions(type: string, userId?: string): Promise<{ suggestion?: string; ideas?: string[] }> {
   const res = await fetch(`${API_BASE}/ai/suggestions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, context }),
+    body: JSON.stringify({ type, userId }),
   });
   if (!res.ok) throw new Error('Failed to get suggestions');
   return res.json();
 }
 
-export async function generateTheme(vibe: string, mood: string): Promise<{ primary: string; secondary: string; background: string; name: string }> {
+export async function generateTheme(userId?: string): Promise<{ primary: string; secondary: string; background: string; name: string }> {
   const res = await fetch(`${API_BASE}/ai/theme-generator`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ vibe, mood }),
+    body: JSON.stringify({ userId }),
   });
   if (!res.ok) throw new Error('Failed to generate theme');
   return res.json();
