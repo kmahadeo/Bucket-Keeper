@@ -4,7 +4,7 @@ import { CoinDisplay } from '@/components/ui/CoinDisplay';
 import { BucketItem } from '@/components/ui/BucketItem';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2 } from 'lucide-react';
+import { Sparkles, Heart, Zap, Settings as SettingsIcon, AlertTriangle, Loader2, Calendar as CalendarIcon, Wand2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'wouter';
 import { useState } from 'react';
@@ -18,9 +18,17 @@ import {
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { Mood } from '@/lib/store';
 
 export default function Home() {
-  const { user, partner, items, apiKey } = useApp();
+  const { user, partner, items, apiKey, updateMood } = useApp();
   const [conflictResolved, setConflictResolved] = useState(false);
   
   // AI State
@@ -54,59 +62,120 @@ export default function Home() {
     }
   };
 
+  const moods: { id: Mood; label: string; icon: string }[] = [
+    { id: 'happy', label: 'Happy', icon: '😊' },
+    { id: 'energized', label: 'Energized', icon: '⚡' },
+    { id: 'calm', label: 'Calm', icon: '😌' },
+    { id: 'tired', label: 'Tired', icon: '😴' },
+    { id: 'stressed', label: 'Stressed', icon: '😫' },
+    { id: 'anxious', label: 'Anxious', icon: '😰' },
+  ];
+
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-6 space-y-8 pb-32">
       {/* Header */}
-      <header className="flex justify-between items-center">
-        <div>
+      <header className="flex justify-between items-start">
+        <div className="flex flex-col gap-1">
           <h1 className="text-xl font-display font-bold text-foreground">
-            Good Morning, {user.name}!
+            Hi, {user.name}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(), 'EEEE, MMMM do')}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
            <CoinDisplay />
-           <Link href="/settings">
-             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-               <SettingsIcon size={18} />
-             </Button>
-           </Link>
         </div>
+        
+        <Link href="/settings">
+             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-muted/50">
+               <SettingsIcon size={20} />
+             </Button>
+        </Link>
       </header>
 
       {/* Hero / Avatar Stage */}
-      <section className="relative h-48 rounded-3xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50 shadow-inner overflow-hidden">
-        {/* Decorative Circles */}
-        <div className="absolute top-4 left-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
-        <div className="absolute bottom-4 right-4 w-32 h-32 bg-secondary/5 rounded-full blur-2xl" />
+      <section className="relative h-64 rounded-3xl bg-gradient-to-br from-violet-50/50 to-fuchsia-50/50 dark:from-violet-950/20 dark:to-fuchsia-950/20 flex flex-col items-center justify-center border border-white/40 dark:border-white/5 shadow-xl backdrop-blur-sm overflow-hidden">
+        
+        {/* Dynamic AI Background Texture */}
+        <div className="absolute inset-0 opacity-30 pointer-events-none">
+           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+        </div>
 
-        <div className="flex items-end gap-6 z-10">
-          <div className="flex flex-col items-center gap-2">
+        {/* Action Bar (Top of Card) */}
+        <div className="absolute top-4 left-4 right-4 flex justify-between z-20">
+           <Drawer>
+             <DrawerTrigger asChild>
+                <Button variant="secondary" size="sm" className="h-8 text-xs font-semibold bg-white/80 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/20 rounded-full">
+                  <Sparkles size={12} className="mr-1.5 text-amber-500" />
+                  Vibe Check
+                </Button>
+             </DrawerTrigger>
+             <DrawerContent>
+               <div className="mx-auto w-full max-w-sm p-6">
+                 <DrawerHeader>
+                   <DrawerTitle className="text-center text-xl">How are you feeling?</DrawerTitle>
+                 </DrawerHeader>
+                 <div className="grid grid-cols-3 gap-4 mt-4">
+                   {moods.map((m) => (
+                     <button
+                       key={m.id}
+                       onClick={() => updateMood(m.id)}
+                       className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${user.mood === m.id ? 'border-primary bg-primary/10' : 'border-transparent bg-muted/30 hover:bg-muted'}`}
+                     >
+                       <span className="text-3xl mb-2">{m.icon}</span>
+                       <span className="text-xs font-medium">{m.label}</span>
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             </DrawerContent>
+           </Drawer>
+
+           <div className="flex gap-2">
+             <Dialog>
+               <DialogTrigger asChild>
+                  <Button variant="secondary" size="sm" className="h-8 text-xs font-semibold bg-white/80 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/20 rounded-full text-indigo-600 dark:text-indigo-300">
+                    <Wand2 size={12} className="mr-1.5" />
+                    AI Plan
+                  </Button>
+               </DialogTrigger>
+               <DialogContent>
+                 <DialogHeader>
+                   <DialogTitle>AI Assistant</DialogTitle>
+                   <DialogDescription>Let Gemini help you plan your week together.</DialogDescription>
+                 </DialogHeader>
+                 <div className="space-y-4">
+                    <Button variant="outline" className="w-full justify-start h-12" onClick={() => alert("Mock: Generating date ideas...")}>
+                      <Sparkles className="mr-2 text-primary" size={16} /> Suggest Date Ideas
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start h-12" onClick={() => alert("Mock: Checking calendars...")}>
+                      <CalendarIcon className="mr-2 text-primary" size={16} /> Find Free Time
+                    </Button>
+                 </div>
+               </DialogContent>
+             </Dialog>
+           </div>
+        </div>
+
+        {/* Avatars */}
+        <div className="flex items-center gap-8 z-10 mt-6">
+          <div className="flex flex-col items-center">
              <TamagotchiAvatar src={user.avatar} mood={user.mood} size="lg" />
-             <span className="text-xs font-medium bg-white/50 dark:bg-black/20 px-2 py-1 rounded-full backdrop-blur-sm">
+             <span className="text-xs font-bold mt-3 text-muted-foreground bg-white/50 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
                You
              </span>
           </div>
           
-          <div className="mb-8">
-            <Heart className="text-rose-400 fill-rose-400 animate-pulse" size={24} />
+          <div className="flex flex-col items-center justify-center mb-8">
+             <motion.div 
+               animate={{ scale: [1, 1.2, 1] }} 
+               transition={{ duration: 2, repeat: Infinity }}
+             >
+               <Heart className="text-rose-400 fill-rose-400 drop-shadow-lg" size={32} />
+             </motion.div>
           </div>
 
-          <div className="flex flex-col items-center gap-2">
-             <TamagotchiAvatar src={partner.avatar} mood={partner.mood} size="lg" />
-             <span className="text-xs font-medium bg-white/50 dark:bg-black/20 px-2 py-1 rounded-full backdrop-blur-sm">
+          <div className="flex flex-col items-center">
+             <TamagotchiAvatar src={partner.avatar} mood={partner.mood} size="lg" isPartner />
+             <span className="text-xs font-bold mt-3 text-muted-foreground bg-white/50 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
                {partner.name}
              </span>
-          </div>
-        </div>
-
-        {/* Vibe Status */}
-        <div className="absolute top-4 right-4">
-          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white/20">
-            <Sparkles size={14} className="text-amber-400" />
-            <span className="text-xs font-semibold">Vibe: Good</span>
           </div>
         </div>
       </section>
@@ -124,14 +193,20 @@ export default function Home() {
               if (open && !aiOptions) handleResolveConflict();
             }}>
               <DialogTrigger asChild>
-                <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 p-4 rounded-xl flex items-start gap-3 cursor-pointer tap-active">
-                  <div className="bg-orange-100 dark:bg-orange-900 p-2 rounded-full text-orange-600 dark:text-orange-400">
-                    <AlertTriangle size={20} />
+                <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 p-4 rounded-2xl flex items-start gap-3 cursor-pointer tap-active relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <AlertTriangle size={64} />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-bold text-orange-800 dark:text-orange-200">Schedule Conflict Detected!</h3>
-                    <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
-                      "Date Night" overlaps with "Poker Night". Tap to resolve with AI.
+                  <div className="bg-orange-100 dark:bg-orange-900 p-2.5 rounded-xl text-orange-600 dark:text-orange-400 shadow-sm z-10">
+                    <AlertTriangle size={24} />
+                  </div>
+                  <div className="flex-1 z-10">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-md">Action Required</span>
+                    </div>
+                    <h3 className="text-base font-bold text-orange-950 dark:text-orange-100 leading-tight">Schedule Conflict</h3>
+                    <p className="text-xs text-orange-800 dark:text-orange-200 mt-1 line-clamp-2">
+                      "Date Night" overlaps with "Poker Night". Tap to view AI compromises.
                     </p>
                   </div>
                 </div>
@@ -139,49 +214,49 @@ export default function Home() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
-                    <Sparkles className="text-primary" size={18} />
-                    AI Conflict Resolution
+                    <Wand2 className="text-primary" size={18} />
+                    AI Resolution
                   </DialogTitle>
                   <DialogDescription>
-                    {apiKey ? "Gemini is analyzing your calendars..." : "Gemini noticed a double-booking. (Add API Key in settings for real AI)"}
+                    {apiKey ? "Gemini is negotiating the schedule..." : "Conflict detected. (Add API Key for real-time AI resolution)"}
                   </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-2 min-h-[150px] flex flex-col justify-center">
                   {loading ? (
                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-8">
-                       <Loader2 className="animate-spin" />
-                       <span className="text-xs">Consulting the Oracle...</span>
+                       <Loader2 className="animate-spin text-primary" size={32} />
+                       <span className="text-xs font-medium animate-pulse">Consulting the Oracle...</span>
                     </div>
                   ) : error ? (
-                    <div className="text-destructive text-sm text-center bg-destructive/10 p-4 rounded-lg">
+                    <div className="text-destructive text-sm text-center bg-destructive/10 p-4 rounded-lg border border-destructive/20">
                       {error}
                     </div>
                   ) : aiOptions ? (
-                    <>
-                      <div className="bg-muted/50 p-3 rounded-lg border border-muted text-sm space-y-2 animate-in fade-in slide-in-from-bottom-2">
-                         <div className="flex justify-between font-medium">
-                           <span className="text-muted-foreground">Option A</span>
-                           <span className="text-green-600 font-bold">Recommended</span>
+                    <div className="grid gap-3">
+                      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/50 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                         <div className="flex justify-between items-center mb-2">
+                           <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Option A</span>
+                           <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Recommended</span>
                          </div>
-                         <p>{aiOptions.optionA}</p>
+                         <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 leading-relaxed">{aiOptions.optionA}</p>
                       </div>
                       
-                      <div className="bg-muted/30 p-3 rounded-lg border border-muted text-sm opacity-80 animate-in fade-in slide-in-from-bottom-3 delay-100">
-                         <div className="flex justify-between font-medium">
-                           <span className="text-muted-foreground">Option B</span>
+                      <div className="bg-muted/30 p-4 rounded-xl border border-muted text-sm opacity-80 animate-in fade-in slide-in-from-bottom-3 delay-100">
+                         <div className="flex justify-between font-medium mb-2">
+                           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option B</span>
                          </div>
-                         <p>{aiOptions.optionB}</p>
+                         <p className="text-muted-foreground leading-relaxed">{aiOptions.optionB}</p>
                       </div>
-                    </>
+                    </div>
                   ) : null}
                 </div>
 
                 <DialogFooter className="sm:justify-start gap-2">
-                  <Button type="button" onClick={() => setConflictResolved(true)} className="flex-1 bg-primary" disabled={loading || !!error}>
-                    Accept Option A
+                  <Button type="button" onClick={() => setConflictResolved(true)} className="flex-1 bg-primary text-white shadow-md hover:shadow-lg transition-all" disabled={loading || !!error}>
+                    Accept A
                   </Button>
-                  <Button type="button" variant="secondary" onClick={() => setConflictResolved(true)} className="flex-1">
+                  <Button type="button" variant="ghost" onClick={() => setConflictResolved(true)} className="flex-1">
                     Dismiss
                   </Button>
                 </DialogFooter>
@@ -201,28 +276,29 @@ export default function Home() {
           <Button variant="ghost" size="sm" className="text-xs h-8">View All</Button>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           {todaysItems.length > 0 ? (
             todaysItems.map(item => (
               <BucketItem key={item.id} item={item} />
             ))
           ) : (
-            <div className="text-center py-8 text-muted-foreground text-sm bg-muted/20 rounded-xl border border-dashed border-muted">
-              Nothing urgent! Go have fun. 🎉
+            <div className="text-center py-12 text-muted-foreground text-sm bg-muted/20 rounded-2xl border border-dashed border-muted flex flex-col items-center gap-2">
+              <span className="text-2xl">🎉</span>
+              <span>Nothing urgent! Go have fun.</span>
             </div>
           )}
         </div>
       </section>
 
       {/* Quick Actions (Mockup) */}
-      <section className="grid grid-cols-2 gap-3">
-        <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 rounded-2xl border-dashed border-primary/30 hover:bg-primary/5 hover:border-primary">
-          <span className="text-2xl">🎲</span>
-          <span className="text-xs font-semibold">Roll for Date</span>
+      <section className="grid grid-cols-2 gap-4">
+        <Button variant="outline" className="h-auto py-5 flex flex-col gap-2 rounded-2xl border-dashed border-primary/30 hover:bg-primary/5 hover:border-primary hover:shadow-md transition-all group">
+          <span className="text-3xl group-hover:scale-110 transition-transform duration-300">🎲</span>
+          <span className="text-xs font-bold text-primary">Roll for Date</span>
         </Button>
-        <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 rounded-2xl border-dashed border-secondary/30 hover:bg-secondary/5 hover:border-secondary">
-          <span className="text-2xl">💌</span>
-          <span className="text-xs font-semibold">Send Love Note</span>
+        <Button variant="outline" className="h-auto py-5 flex flex-col gap-2 rounded-2xl border-dashed border-secondary/30 hover:bg-secondary/5 hover:border-secondary hover:shadow-md transition-all group">
+          <span className="text-3xl group-hover:scale-110 transition-transform duration-300">💌</span>
+          <span className="text-xs font-bold text-secondary">Send Love Note</span>
         </Button>
       </section>
     </div>

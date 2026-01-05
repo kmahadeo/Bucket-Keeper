@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, RefreshCw } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState } from 'react';
 import { useTheme } from '@/components/theme-provider';
@@ -25,7 +25,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-6 bg-background min-h-screen text-foreground">
+    <div className="p-6 bg-background min-h-screen text-foreground pb-24">
       <div className="flex items-center gap-4 mb-8">
         <Link href="/">
           <Button variant="ghost" size="icon" className="-ml-2">
@@ -51,6 +51,25 @@ export default function Settings() {
                <p className="text-xs text-muted-foreground mt-2">Share this code with your partner to link buckets.</p>
             </div>
           </div>
+        </section>
+
+        {/* Calendar Sync */}
+        <section className="space-y-4">
+          <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider border-b pb-2">Integrations</h2>
+          <Link href="/calendar-sync">
+            <div className="bg-card p-4 rounded-xl border flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h3 className="font-medium">Calendar Sync</h3>
+                  <p className="text-xs text-muted-foreground">Google, iCloud, Outlook</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm">Configure</Button>
+            </div>
+          </Link>
         </section>
 
         {/* AI Configuration */}

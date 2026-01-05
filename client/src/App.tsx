@@ -8,6 +8,7 @@ import Buckets from "@/pages/Buckets";
 import Store from "@/pages/Store";
 import Archive from "@/pages/Archive";
 import Settings from "@/pages/Settings";
+import CalendarSync from "@/pages/CalendarSync";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
         <Route path="/store" component={Store} />
         <Route path="/archive" component={Archive} />
         <Route path="/settings" component={Settings} />
+        <Route path="/calendar-sync" component={CalendarSync} />
         <Route component={NotFound} />
       </Switch>
     </MobileLayout>
