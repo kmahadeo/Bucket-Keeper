@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { useAuthStore } from '../src/store/authStore';
-import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants/colors';
+import { Colors, Spacing, FontSize, BorderRadius, Shadows } from '../src/constants/theme';
+import { AnimatedGradientBackground } from '../src/components/AnimatedGradientBackground';
+import { GlassCard } from '../src/components/GlassCard';
+import { SkeuomorphicButton } from '../src/components/SkeuomorphicElements';
 
 export default function Index() {
   const router = useRouter();
@@ -40,8 +44,6 @@ export default function Index() {
     };
 
     const subscription = Linking.addEventListener('url', handleUrl);
-    
-    // Check initial URL
     Linking.getInitialURL().then((url) => {
       if (url) handleUrl({ url });
     });
@@ -92,101 +94,109 @@ export default function Index() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <AnimatedGradientBackground>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+        </View>
+      </AnimatedGradientBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+    <AnimatedGradientBackground>
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
         >
-          {/* Logo & Title */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="heart" size={48} color={Colors.primary} />
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Logo & Title */}
+            <View style={styles.header}>
+              <LinearGradient
+                colors={['#EC4899', '#A855F7', '#6366F1']}
+                style={styles.logoContainer}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name="heart" size={48} color="#FFF" />
+              </LinearGradient>
+              <Text style={styles.title}>Bucket Keeper</Text>
+              <Text style={styles.subtitle}>Gamify your love story</Text>
             </View>
-            <Text style={styles.title}>Bucket Keeper</Text>
-            <Text style={styles.subtitle}>Manage tasks together, earn rewards</Text>
-          </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            {!isLoginMode && (
+            {/* Form */}
+            <GlassCard style={styles.formCard}>
+              {!isLoginMode && (
+                <View style={styles.inputContainer}>
+                  <Ionicons name="person-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Your name"
+                    placeholderTextColor={Colors.textMuted}
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                  />
+                </View>
+              )}
+
               <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Your name"
+                  placeholder="Email address"
                   placeholderTextColor={Colors.textMuted}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
               </View>
-            )}
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Email address"
-                placeholderTextColor={Colors.textMuted}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor={Colors.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </View>
+
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+              <SkeuomorphicButton
+                title={isLoginMode ? 'Sign In' : 'Create Account'}
+                onPress={handleSubmit}
+                loading={submitting}
+                variant="primary"
+                size="large"
               />
-            </View>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color={Colors.textMuted} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={Colors.textMuted}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator color={Colors.text} />
-              ) : (
-                <Text style={styles.primaryButtonText}>
-                  {isLoginMode ? 'Sign In' : 'Create Account'}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <TouchableOpacity 
-              style={styles.googleButton}
-              onPress={handleGoogleLogin}
-            >
-              <Ionicons name="logo-google" size={20} color={Colors.text} />
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.googleButton}
+                onPress={handleGoogleLogin}
+              >
+                <LinearGradient
+                  colors={[Colors.glass, Colors.glassDark]}
+                  style={styles.googleGradient}
+                >
+                  <Ionicons name="logo-google" size={20} color={Colors.text} />
+                  <Text style={styles.googleButtonText}>Continue with Google</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </GlassCard>
 
             <TouchableOpacity 
               style={styles.switchButton}
@@ -204,21 +214,19 @@ export default function Index() {
                 </Text>
               </Text>
             </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </AnimatedGradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -235,13 +243,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxl,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primary + '20',
+    width: 100,
+    height: 100,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
+    ...Shadows.strong,
   },
   title: {
     fontSize: FontSize.xxxl,
@@ -253,15 +261,18 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.textSecondary,
   },
-  form: {
-    gap: Spacing.md,
+  formCard: {
+    padding: Spacing.lg,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.glassDark,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
   },
   inputIcon: {
     marginRight: Spacing.sm,
@@ -276,29 +287,17 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: FontSize.sm,
     textAlign: 'center',
-  },
-  primaryButton: {
-    backgroundColor: Colors.primary,
-    height: 52,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.sm,
-  },
-  primaryButtonText: {
-    color: Colors.text,
-    fontSize: FontSize.md,
-    fontWeight: '600',
+    marginBottom: Spacing.md,
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: Spacing.md,
+    marginVertical: Spacing.lg,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.surfaceLight,
+    backgroundColor: Colors.glassBorder,
   },
   dividerText: {
     color: Colors.textMuted,
@@ -306,13 +305,18 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
   },
   googleButton: {
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+  },
+  googleGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
     height: 52,
-    borderRadius: BorderRadius.md,
     gap: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
   },
   googleButtonText: {
     color: Colors.text,
@@ -321,14 +325,14 @@ const styles = StyleSheet.create({
   },
   switchButton: {
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.lg,
   },
   switchText: {
     color: Colors.textSecondary,
     fontSize: FontSize.sm,
   },
   switchTextBold: {
-    color: Colors.primary,
+    color: Colors.accent,
     fontWeight: '600',
   },
 });
