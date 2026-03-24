@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/colors';
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../constants/theme';
 
 interface CoinDisplayProps {
   jointCoins: number;
@@ -9,27 +9,35 @@ interface CoinDisplayProps {
   onPress?: () => void;
 }
 
-export const CoinDisplay: React.FC<CoinDisplayProps> = ({ 
-  jointCoins, 
-  personalCoins,
-  onPress 
-}) => {
+export const CoinDisplay: React.FC<CoinDisplayProps> = ({ jointCoins, personalCoins, onPress }) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.coinBox} onPress={onPress} activeOpacity={0.7}>
-        <View style={[styles.iconCircle, { backgroundColor: Colors.secondary + '20' }]}>
-          <Ionicons name="people" size={16} color={Colors.secondary} />
+      <TouchableOpacity 
+        style={[styles.coinCard, Shadows.sm]} 
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: Colors.accent + '15' }]}>
+          <Ionicons name="people" size={18} color={Colors.accent} />
         </View>
-        <Text style={styles.label}>JOINT</Text>
-        <Text style={styles.amount}>{jointCoins}</Text>
+        <View>
+          <Text style={styles.label}>JOINT</Text>
+          <Text style={[styles.value, { color: Colors.accent }]}>{jointCoins}</Text>
+        </View>
       </TouchableOpacity>
       
-      <TouchableOpacity style={styles.coinBox} onPress={onPress} activeOpacity={0.7}>
-        <View style={[styles.iconCircle, { backgroundColor: Colors.primary + '20' }]}>
-          <Ionicons name="person" size={16} color={Colors.primary} />
+      <TouchableOpacity 
+        style={[styles.coinCard, Shadows.sm]} 
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: Colors.primary + '15' }]}>
+          <Ionicons name="person" size={18} color={Colors.primary} />
         </View>
-        <Text style={styles.label}>PERSONAL</Text>
-        <Text style={styles.amount}>{personalCoins}</Text>
+        <View>
+          <Text style={styles.label}>PERSONAL</Text>
+          <Text style={[styles.value, { color: Colors.primary }]}>{personalCoins}</Text>
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -40,31 +48,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.md,
   },
-  coinBox: {
+  coinCard: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
   },
   iconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.full,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xs,
   },
   label: {
-    fontSize: FontSize.xs,
+    ...Typography.label,
     color: Colors.textMuted,
-    fontWeight: '600',
-    letterSpacing: 1,
+    marginBottom: 2,
   },
-  amount: {
-    fontSize: FontSize.xl,
-    color: Colors.text,
+  value: {
+    fontSize: 22,
     fontWeight: '700',
-    marginTop: 2,
   },
 });

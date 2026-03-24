@@ -2,7 +2,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius } from '../../src/constants/colors';
+import { Colors, Spacing, Typography, BorderRadius } from '../../src/constants/theme';
 
 export default function TabsLayout() {
   return (
@@ -20,18 +20,14 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="buckets"
         options={{
           title: 'Buckets',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="list" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="list" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -40,7 +36,7 @@ export default function TabsLayout() {
           title: '',
           tabBarIcon: ({ focused }) => (
             <View style={styles.addButton}>
-              <Ionicons name="add" size={28} color={Colors.text} />
+              <Ionicons name="add" size={26} color="#FFF" />
             </View>
           ),
           tabBarStyle: { display: 'none' },
@@ -49,19 +45,15 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="store"
         options={{
-          title: 'Store',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="gift" size={size} color={color} />
-          ),
+          title: 'Rewards',
+          tabBarIcon: ({ color, size }) => <Ionicons name="gift" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={22} color={color} />,
         }}
       />
     </Tabs>
@@ -70,33 +62,29 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderTopWidth: 0,
+    backgroundColor: Colors.card,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
     height: Platform.OS === 'ios' ? 88 : 64,
     paddingTop: Spacing.xs,
     paddingBottom: Platform.OS === 'ios' ? Spacing.lg : Spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '500',
   },
   addButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Platform.OS === 'ios' ? 20 : 10,
+    marginBottom: Platform.OS === 'ios' ? 20 : 8,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 5,
   },
 });

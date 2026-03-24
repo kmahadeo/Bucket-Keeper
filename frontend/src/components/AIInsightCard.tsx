@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/colors';
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../constants/theme';
 
 interface AIInsightCardProps {
   insight: string;
@@ -11,69 +10,63 @@ interface AIInsightCardProps {
 
 export const AIInsightCard: React.FC<AIInsightCardProps> = ({ insight, isLoading }) => {
   return (
-    <LinearGradient
-      colors={[Colors.primary + '30', Colors.primary + '10']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <View style={[styles.container, Shadows.sm]}>
       <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="sparkles" size={18} color={Colors.primary} />
+        <View style={styles.iconBadge}>
+          <Ionicons name="sparkles" size={14} color={Colors.primary} />
         </View>
-        <Text style={styles.title}>AI Insight</Text>
+        <Text style={styles.label}>AI INSIGHT</Text>
       </View>
       
       {isLoading ? (
-        <View style={styles.loadingContainer}>
+        <View style={styles.loadingRow}>
           <ActivityIndicator size="small" color={Colors.primary} />
-          <Text style={styles.loadingText}>Analyzing...</Text>
+          <Text style={styles.loadingText}>Thinking...</Text>
         </View>
       ) : (
         <Text style={styles.insight}>{insight}</Text>
       )}
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.primary + '08',
+    borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.primary + '30',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: Spacing.sm,
   },
-  iconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary + '20',
+  iconBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: Colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.sm,
   },
-  title: {
-    fontSize: FontSize.sm,
+  label: {
+    ...Typography.label,
     color: Colors.primary,
-    fontWeight: '600',
   },
-  insight: {
-    fontSize: FontSize.md,
-    color: Colors.text,
-    lineHeight: 22,
-  },
-  loadingContainer: {
+  loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
   },
   loadingText: {
-    fontSize: FontSize.sm,
+    ...Typography.caption,
     color: Colors.textSecondary,
-    marginLeft: Spacing.sm,
+  },
+  insight: {
+    ...Typography.body,
+    color: Colors.text,
   },
 });

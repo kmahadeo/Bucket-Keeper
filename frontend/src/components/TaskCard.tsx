@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius } from '../constants/colors';
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../constants/theme';
 import type { BucketItem } from '../utils/api';
 
 interface TaskCardProps {
@@ -18,59 +18,56 @@ export const TaskCard: React.FC<TaskCardProps> = ({ item, onComplete, onPress })
       default: return Colors.priorityLow;
     }
   };
-  
-  const getTypeIcon = () => {
-    switch (item.item_type) {
-      case 'goal': return 'flag';
-      case 'habit': return 'refresh';
-      default: return 'checkbox-outline';
-    }
-  };
 
   return (
-    <Pressable 
-      style={({ pressed }) => [
-        styles.container,
-        pressed && styles.pressed
-      ]}
+    <TouchableOpacity 
+      style={[styles.container, Shadows.sm]}
       onPress={onPress}
+      activeOpacity={0.7}
     >
+      {/* Checkbox */}
       <TouchableOpacity 
-        style={[styles.checkBox, item.completed && styles.checkBoxCompleted]}
+        style={[styles.checkbox, item.completed && styles.checkboxCompleted]}
         onPress={onComplete}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        {item.completed && (
-          <Ionicons name="checkmark" size={16} color={Colors.text} />
-        )}
+        {item.completed && <Ionicons name="checkmark" size={14} color="#FFF" />}
       </TouchableOpacity>
       
+      {/* Content */}
       <View style={styles.content}>
         <Text style={[styles.title, item.completed && styles.titleCompleted]} numberOfLines={2}>
           {item.title}
         </Text>
         
         <View style={styles.meta}>
-          <View style={[styles.priorityDot, { backgroundColor: getPriorityColor() }]} />
-          <Text style={styles.metaText}>{item.priority}</Text>
+          {/* Priority indicator */}
+          <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor() + '15' }]}>
+            <View style={[styles.priorityDot, { backgroundColor: getPriorityColor() }]} />
+            <Text style={[styles.priorityText, { color: getPriorityColor() }]}>
+              {item.priority}
+            </Text>
+          </View>
           
+          {/* Reward */}
           <View style={styles.rewardBadge}>
-            <Ionicons name="sparkles" size={12} color={Colors.secondary} />
+            <Ionicons name="star" size={12} color={Colors.gold} />
             <Text style={styles.rewardText}>{item.reward}</Text>
+          </View>
+          
+          {/* Type badge */}
+          <View style={[styles.typeBadge, { 
+            backgroundColor: item.bucket_type === 'joint' ? Colors.accent + '15' : Colors.primary + '15' 
+          }]}>
+            <Ionicons 
+              name={item.bucket_type === 'joint' ? 'people' : 'person'} 
+              size={12} 
+              color={item.bucket_type === 'joint' ? Colors.accent : Colors.primary} 
+            />
           </View>
         </View>
       </View>
-      
-      <View style={[styles.typeBadge, { 
-        backgroundColor: item.bucket_type === 'joint' ? Colors.secondary + '20' : Colors.primary + '20' 
-      }]}>
-        <Ionicons 
-          name={item.bucket_type === 'joint' ? 'people' : 'person'} 
-          size={14} 
-          color={item.bucket_type === 'joint' ? Colors.secondary : Colors.primary} 
-        />
-      </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 };
 
@@ -78,26 +75,22 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.card,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
   },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
-  },
-  checkBox: {
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.textMuted,
+    borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.md,
   },
-  checkBoxCompleted: {
+  checkboxCompleted: {
     backgroundColor: Colors.success,
     borderColor: Colors.success,
   },
@@ -105,9 +98,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: FontSize.md,
+    ...Typography.bodyMedium,
     color: Colors.text,
-    fontWeight: '500',
     marginBottom: Spacing.xs,
   },
   titleCompleted: {
@@ -117,39 +109,41 @@ const styles = StyleSheet.create({
   meta: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  priorityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    gap: 4,
   },
   priorityDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: Spacing.xs,
   },
-  metaText: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
+  priorityText: {
+    fontSize: 11,
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
   rewardBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: Spacing.md,
-    backgroundColor: Colors.secondary + '15',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
+    gap: 3,
   },
   rewardText: {
-    fontSize: FontSize.xs,
-    color: Colors.secondary,
+    fontSize: 12,
     fontWeight: '600',
-    marginLeft: 4,
+    color: Colors.gold,
   },
   typeBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: BorderRadius.full,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: Spacing.sm,
   },
 });
