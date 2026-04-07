@@ -40,9 +40,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ themeName: savedName as ThemeName });
       }
 
-      // Initialize SQLite database
-      await initDatabase();
-      set({ isDbReady: true, isAppReady: true });
+      // Initialize SQLite database (skipped on web)
+      const result = initDatabase();
+      set({ isDbReady: result !== null, isAppReady: true });
     } catch (error) {
       console.error('Failed to initialize app:', error);
       // Still mark as ready so the app doesn't hang

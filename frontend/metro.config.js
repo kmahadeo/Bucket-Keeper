@@ -22,4 +22,15 @@ config.cacheStores = [
 // Reduce the number of workers to decrease resource usage
 config.maxWorkers = 2;
 
+// Stub out expo-sqlite on web (it requires WASM that Metro can't bundle)
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (platform === 'web' && moduleName === 'expo-sqlite') {
+    return {
+      filePath: require.resolve('./src/database/sqlite-web-stub.js'),
+      type: 'sourceFile',
+    };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;
