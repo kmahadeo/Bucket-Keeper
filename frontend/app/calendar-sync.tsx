@@ -1,16 +1,42 @@
-// Bucket Keeper - Calendar Sync Screen
+// Bucket Keeper - Google Calendar Sync Screen
+// Connection status, event list, and sync controls
 
 import React from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
+import { format, parseISO } from 'date-fns';
 import { useThemeColors, Card, GradientButton, Badge } from '../src/components/UIKit';
-import { Typography, Spacing, Layout, BorderRadius } from '../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Layout, Shadows } from '../src/constants/theme';
 import { Palette } from '../src/constants/colors';
 import { calendarApi } from '../src/utils/api';
-import { format, parseISO } from 'date-fns';
+
+function formatEventTime(start: string, end: string, isAllDay: boolean): string {
+  if (isAllDay) return 'All day';
+  try {
+    return `${format(parseISO(start), 'h:mm a')} - ${format(parseISO(end), 'h:mm a')}`;
+  } catch {
+    return '';
+  }
+}
+
+function formatEventDate(dateStr: string): string {
+  try {
+    return format(parseISO(dateStr), 'EEEE, MMMM d');
+  } catch {
+    return '';
+  }
+}
 
 export default function CalendarSyncScreen() {
   const router = useRouter();
@@ -27,15 +53,17 @@ export default function CalendarSyncScreen() {
     enabled: status?.connected === true,
   });
 
+  const isConnected = status?.connected === true;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View
         style={{
-          ...Layout.row,
+          ...Layout.rowBetween,
           paddingHorizontal: Spacing.screenHorizontal,
-          paddingVertical: Spacing.md,
-          gap: Spacing.md,
+          paddingTop: Spacing.md,
+          paddingBottom: Spacing.md,
         }}
       >
         <Pressable
@@ -48,122 +76,178 @@ export default function CalendarSyncScreen() {
             ...Layout.center,
           }}
         >
-          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
         </Pressable>
-        <Text style={{ ...Typography.h2, color: colors.text }}>Calendar Sync</Text>
+        <Text style={{ ...Typography.h3, color: colors.text }}>Calendar Sync</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <View
-        style={{
+      <ScrollView
+        contentContainerStyle={{
           paddingHorizontal: Spacing.screenHorizontal,
-          gap: Spacing.sectionGap,
-          flex: 1,
+          paddingBottom: Spacing.xxxl,
         }}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Connection Status */}
-        <Card>
-          <View style={Layout.rowBetween}>
-            <View style={Layout.row}>
-              <Ionicons
-                name="calendar"
-                size={22}
-                color={status?.connected ? Palette.success : colors.textMuted}
-                style={{ marginRight: Spacing.md }}
-              />
-              <View>
-                <Text style={{ ...Typography.bodyMedium, color: colors.text }}>
-                  Google Calendar
-                </Text>
-                {status?.email && (
-                  <Text style={{ ...Typography.caption, color: colors.textMuted }}>
-                    {status.email}
-                  </Text>
-                )}
-              </View>
-            </View>
-            <Badge
-              text={status?.connected ? 'Connected' : 'Not Connected'}
-              color={status?.connected ? Palette.success + '20' : Palette.white10}
-              textColor={status?.connected ? Palette.success : colors.textMuted}
-            />
+        {/* Loading */}
+        {statusLoading && (
+          <View style={{ ...Layout.center, paddingVertical: Spacing.xxl }}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
-        </Card>
+        )}
 
-        {!status?.connected && !statusLoading && (
+        {/* Connection Status Card */}
+        {!statusLoading && (
+          <Card style={{ marginBottom: Spacing.lg }}>
+            <View style={Layout.rowBetween}>
+              <View style={Layout.row}>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 14,
+                    backgroundColor: isConnected ? Palette.success + '15' : Palette.white10,
+                    ...Layout.center,
+                    marginRight: Spacing.md,
+                  }}
+                >
+                  <Ionicons
+                    name="calendar"
+                    size={24}
+                    color={isConnected ? Palette.success : colors.textMuted}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ ...Typography.bodyMedium, color: colors.text }}>
+                    Google Calendar
+                  </Text>
+                  {isConnected && status?.email && (
+                    <Text
+                      style={{
+                        ...Typography.caption,
+                        color: colors.textSecondary,
+                        marginTop: 2,
+                      }}
+                    >
+                      {status.email}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <Badge
+                text={isConnected ? 'Connected' : 'Not Connected'}
+                color={isConnected ? Palette.success + '20' : Palette.white10}
+                textColor={isConnected ? Palette.success : colors.textMuted}
+              />
+            </View>
+          </Card>
+        )}
+
+        {/* Connect Button */}
+        {!statusLoading && !isConnected && (
           <GradientButton
             title="Connect Google Calendar"
-            onPress={() => {}}
+            onPress={() => {
+              // Calendar OAuth flow would be triggered here
+            }}
             icon="logo-google"
             size="lg"
+            style={{ marginBottom: Spacing.sectionGap }}
           />
         )}
 
         {/* Upcoming Events */}
-        {status?.connected && (
-          <>
-            <Text style={{ ...Typography.label, color: colors.textSecondary }}>
+        {isConnected && (
+          <View style={{ marginTop: Spacing.md }}>
+            <Text
+              style={{
+                ...Typography.label,
+                color: colors.textSecondary,
+                marginBottom: Spacing.md,
+              }}
+            >
               UPCOMING EVENTS
             </Text>
 
-            {eventsLoading ? (
+            {eventsLoading && (
               <View style={{ ...Layout.center, paddingVertical: Spacing.xl }}>
                 <ActivityIndicator size="small" color={colors.primary} />
               </View>
-            ) : events && events.length > 0 ? (
-              <FlatList
-                data={events}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <Card style={{ marginBottom: Spacing.sm }}>
+            )}
+
+            {!eventsLoading && events && events.length > 0 && (
+              <View style={{ gap: Spacing.sm }}>
+                {events.map((event) => (
+                  <Card key={event.id}>
                     <View style={Layout.row}>
+                      {/* Accent bar */}
                       <View
                         style={{
                           width: 4,
-                          height: 36,
+                          height: 44,
                           borderRadius: 2,
                           backgroundColor: colors.primary,
                           marginRight: Spacing.md,
                         }}
                       />
                       <View style={{ flex: 1 }}>
-                        <Text style={{ ...Typography.bodyMedium, color: colors.text }}>
-                          {item.title}
+                        <Text
+                          style={{ ...Typography.bodyMedium, color: colors.text }}
+                          numberOfLines={1}
+                        >
+                          {event.title}
                         </Text>
-                        <Text style={{ ...Typography.caption, color: colors.textMuted }}>
-                          {formatEventTime(item.startTime, item.endTime, item.isAllDay)}
-                        </Text>
+                        <View style={{ ...Layout.row, gap: Spacing.sm, marginTop: Spacing.xs }}>
+                          <View style={Layout.row}>
+                            <Ionicons
+                              name="time-outline"
+                              size={12}
+                              color={colors.textMuted}
+                              style={{ marginRight: 3 }}
+                            />
+                            <Text style={{ ...Typography.caption, color: colors.textMuted }}>
+                              {formatEventTime(event.startTime, event.endTime, event.isAllDay)}
+                            </Text>
+                          </View>
+                          <View style={Layout.row}>
+                            <Ionicons
+                              name="calendar-outline"
+                              size={12}
+                              color={colors.textMuted}
+                              style={{ marginRight: 3 }}
+                            />
+                            <Text style={{ ...Typography.caption, color: colors.textMuted }}>
+                              {formatEventDate(event.startTime)}
+                            </Text>
+                          </View>
+                        </View>
                       </View>
                     </View>
                   </Card>
-                )}
-                showsVerticalScrollIndicator={false}
-              />
-            ) : (
+                ))}
+              </View>
+            )}
+
+            {!eventsLoading && (!events || events.length === 0) && (
               <Card>
-                <Text
-                  style={{
-                    ...Typography.body,
-                    color: colors.textMuted,
-                    textAlign: 'center',
-                    paddingVertical: Spacing.md,
-                  }}
-                >
-                  No upcoming events
-                </Text>
+                <View style={{ ...Layout.center, paddingVertical: Spacing.lg }}>
+                  <Ionicons name="calendar-outline" size={36} color={colors.textMuted} />
+                  <Text
+                    style={{
+                      ...Typography.body,
+                      color: colors.textMuted,
+                      textAlign: 'center',
+                      marginTop: Spacing.md,
+                    }}
+                  >
+                    No upcoming events
+                  </Text>
+                </View>
               </Card>
             )}
-          </>
+          </View>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
-}
-
-function formatEventTime(start: string, end: string, isAllDay: boolean): string {
-  if (isAllDay) return 'All day';
-  try {
-    return `${format(parseISO(start), 'h:mm a')} - ${format(parseISO(end), 'h:mm a')}`;
-  } catch {
-    return '';
-  }
 }

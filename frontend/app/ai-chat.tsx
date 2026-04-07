@@ -1,6 +1,7 @@
 // Bucket Keeper - AI Chat Interface
+// Conversational AI assistant for task management
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,7 +17,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColors } from '../src/components/UIKit';
-import { Typography, Spacing, BorderRadius, Layout } from '../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Layout, Shadows } from '../src/constants/theme';
 import { Palette } from '../src/constants/colors';
 import { aiApi } from '../src/utils/api';
 
@@ -31,17 +32,26 @@ export default function AIChatScreen() {
   const router = useRouter();
   const colors = useThemeColors();
   const flatListRef = useRef<FlatList>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content:
+        "Hi! I'm your Bucket Keeper assistant. I can help you manage tasks, set priorities, plan your day, or answer questions about your progress. What would you like to do?",
+      createdAt: Date.now(),
+    },
+  ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | undefined>();
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     const text = input.trim();
     if (!text || isLoading) return;
 
     const userMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}`,
       role: 'user',
       content: text,
       createdAt: Date.now(),
@@ -54,7 +64,7 @@ export default function AIChatScreen() {
     try {
       const response = await aiApi.chat(text, conversationId);
       const aiMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: `ai-${Date.now()}`,
         role: 'assistant',
         content: response.data.response,
         createdAt: Date.now(),
@@ -63,16 +73,16 @@ export default function AIChatScreen() {
       setMessages((prev) => [...prev, aiMsg]);
     } catch {
       const errorMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: `error-${Date.now()}`,
         role: 'assistant',
-        content: "Sorry, I couldn't process that. Please try again.",
+        content: 'Sorry, I encountered an error. Please try again.',
         createdAt: Date.now(),
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [input, isLoading, conversationId]);
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.role === 'user';
@@ -83,8 +93,20 @@ export default function AIChatScreen() {
           alignSelf: isUser ? 'flex-end' : 'flex-start',
           maxWidth: '80%',
           marginBottom: Spacing.sm,
+          paddingHorizontal: Spacing.screenHorizontal,
         }}
       >
+        {/* Sender label for AI */}
+        {!isUser && (
+          <View style={{ ...Layout.row, marginBottom: Spacing.xs }}>
+            <Ionicons name="sparkles" size={12} color={colors.primary} style={{ marginRight: 4 }} />
+            <Text style={{ ...Typography.tiny, color: colors.primary, fontWeight: '600' }}>
+              AI Assistant
+            </Text>
+          </View>
+        )}
+
+        {/* Message bubble */}
         {isUser ? (
           <LinearGradient
             colors={[colors.gradientStart, colors.gradientEnd]}
@@ -94,10 +116,12 @@ export default function AIChatScreen() {
               paddingHorizontal: Spacing.md,
               paddingVertical: Spacing.sm + 2,
               borderRadius: BorderRadius.lg,
-              borderBottomRightRadius: 4,
+              borderBottomRightRadius: BorderRadius.xs,
             }}
           >
-            <Text style={{ ...Typography.body, color: '#FFF' }}>{item.content}</Text>
+            <Text style={{ ...Typography.body, color: '#FFF', lineHeight: 22 }}>
+              {item.content}
+            </Text>
           </LinearGradient>
         ) : (
           <View
@@ -106,14 +130,31 @@ export default function AIChatScreen() {
               paddingHorizontal: Spacing.md,
               paddingVertical: Spacing.sm + 2,
               borderRadius: BorderRadius.lg,
-              borderBottomLeftRadius: 4,
+              borderBottomLeftRadius: BorderRadius.xs,
               borderWidth: 1,
               borderColor: colors.cardBorder,
             }}
           >
-            <Text style={{ ...Typography.body, color: colors.text }}>{item.content}</Text>
+            <Text style={{ ...Typography.body, color: colors.text, lineHeight: 22 }}>
+              {item.content}
+            </Text>
           </View>
         )}
+
+        {/* Timestamp */}
+        <Text
+          style={{
+            ...Typography.tiny,
+            color: colors.textMuted,
+            marginTop: 2,
+            alignSelf: isUser ? 'flex-end' : 'flex-start',
+          }}
+        >
+          {new Date(item.createdAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </Text>
       </View>
     );
   };
@@ -123,10 +164,10 @@ export default function AIChatScreen() {
       {/* Header */}
       <View
         style={{
-          ...Layout.row,
+          ...Layout.rowBetween,
           paddingHorizontal: Spacing.screenHorizontal,
-          paddingVertical: Spacing.md,
-          gap: Spacing.md,
+          paddingTop: Spacing.md,
+          paddingBottom: Spacing.md,
           borderBottomWidth: 1,
           borderBottomColor: colors.cardBorder,
         }}
@@ -141,108 +182,142 @@ export default function AIChatScreen() {
             ...Layout.center,
           }}
         >
-          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
         </Pressable>
+
         <View style={Layout.row}>
-          <Text style={{ fontSize: 18, marginRight: Spacing.sm }}>✨</Text>
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: Palette.indigo15,
+              ...Layout.center,
+              marginRight: Spacing.sm,
+            }}
+          >
+            <Ionicons name="sparkles" size={16} color={colors.primary} />
+          </View>
           <Text style={{ ...Typography.h3, color: colors.text }}>AI Assistant</Text>
         </View>
+
+        <View style={{ width: 40 }} />
       </View>
 
       {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{
-          padding: Spacing.screenHorizontal,
-          paddingTop: Spacing.md,
-          flexGrow: 1,
-          justifyContent: messages.length === 0 ? 'center' : 'flex-end',
-        }}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-        ListEmptyComponent={
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 40, marginBottom: Spacing.md }}>✨</Text>
-            <Text style={{ ...Typography.h3, color: colors.text, textAlign: 'center' }}>
-              AI Assistant
-            </Text>
-            <Text
-              style={{
-                ...Typography.body,
-                color: colors.textMuted,
-                textAlign: 'center',
-                marginTop: Spacing.sm,
-                maxWidth: 260,
-              }}
-            >
-              Ask me for date ideas, conflict resolution tips, or productivity coaching.
-            </Text>
-          </View>
-        }
-      />
-
-      {isLoading && (
-        <View style={{ paddingHorizontal: Spacing.screenHorizontal, paddingBottom: Spacing.sm }}>
-          <View style={{ ...Layout.row, alignSelf: 'flex-start' }}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={{ ...Typography.caption, color: colors.textMuted, marginLeft: Spacing.sm }}>
-              Thinking...
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {/* Input */}
       <KeyboardAvoidingView
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={0}
       >
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{
+            paddingTop: Spacing.md,
+            paddingBottom: Spacing.md,
+            flexGrow: 1,
+          }}
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }}
+          ListFooterComponent={
+            isLoading ? (
+              <View
+                style={{
+                  paddingHorizontal: Spacing.screenHorizontal,
+                  paddingVertical: Spacing.sm,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                <View
+                  style={{
+                    ...Layout.row,
+                    backgroundColor: colors.card,
+                    paddingHorizontal: Spacing.md,
+                    paddingVertical: Spacing.sm + 2,
+                    borderRadius: BorderRadius.lg,
+                    borderBottomLeftRadius: BorderRadius.xs,
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    gap: Spacing.sm,
+                  }}
+                >
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={{ ...Typography.bodySmall, color: colors.textMuted }}>
+                    Thinking...
+                  </Text>
+                </View>
+              </View>
+            ) : null
+          }
+        />
+
+        {/* Input Area */}
         <View
           style={{
-            ...Layout.row,
+            flexDirection: 'row',
+            alignItems: 'flex-end',
             paddingHorizontal: Spacing.screenHorizontal,
             paddingVertical: Spacing.sm,
-            gap: Spacing.sm,
             borderTopWidth: 1,
             borderTopColor: colors.cardBorder,
+            backgroundColor: colors.background,
+            gap: Spacing.sm,
           }}
         >
-          <TextInput
-            value={input}
-            onChangeText={setInput}
-            placeholder="Ask anything..."
-            placeholderTextColor={colors.textMuted}
+          <View
             style={{
               flex: 1,
-              height: 44,
               backgroundColor: Palette.white06,
-              borderRadius: BorderRadius.md,
+              borderRadius: BorderRadius.card,
+              borderWidth: 1,
+              borderColor: colors.cardBorder,
               paddingHorizontal: Spacing.md,
-              color: colors.text,
-              ...Typography.body,
+              paddingVertical: Platform.OS === 'ios' ? Spacing.sm : 0,
+              maxHeight: 120,
             }}
-            onSubmitEditing={sendMessage}
-            returnKeyType="send"
-          />
+          >
+            <TextInput
+              value={input}
+              onChangeText={setInput}
+              placeholder="Ask me anything..."
+              placeholderTextColor={colors.textMuted}
+              style={{
+                ...Typography.body,
+                color: colors.text,
+                maxHeight: 100,
+              }}
+              multiline
+              returnKeyType="default"
+              editable={!isLoading}
+            />
+          </View>
+
           <Pressable
             onPress={sendMessage}
             disabled={!input.trim() || isLoading}
             style={({ pressed }) => ({
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: input.trim() ? colors.primary : Palette.white06,
-              ...Layout.center,
-              opacity: pressed ? 0.8 : 1,
+              opacity: !input.trim() || isLoading ? 0.4 : pressed ? 0.8 : 1,
             })}
           >
-            <Ionicons
-              name="send"
-              size={18}
-              color={input.trim() ? '#FFF' : colors.textMuted}
-            />
+            <LinearGradient
+              colors={[colors.gradientStart, colors.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                ...Layout.center,
+                ...Shadows.fab,
+              }}
+            >
+              <Ionicons name="send" size={18} color="#FFF" />
+            </LinearGradient>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
