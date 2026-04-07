@@ -107,11 +107,54 @@ export const statsApi = {
 
 // AI API
 export const aiApi = {
-  getInsight: (context: string = 'home') =>
-    api.post<{ insight: string }>('/ai/insight', { context }),
-  
-  getDailyPlan: () =>
-    api.post<{ plan: string[] }>('/ai/daily-plan'),
+  getInsight: (context: string = 'home', aiContext?: any) =>
+    api.post<{ insight: string }>('/ai/insight', { context, ai_context: aiContext }),
+
+  getDailyPlan: (aiContext?: any) =>
+    api.post<{ plan: string[] }>('/ai/daily-plan', { ai_context: aiContext }),
+
+  extractTasks: (transcript: string) =>
+    api.post<{ tasks: Array<{
+      title: string;
+      assignedTo: string | null;
+      isJoint: boolean;
+      priority: 'low' | 'medium' | 'high' | 'urgent';
+      category: string;
+      dateText: string | null;
+      timeText: string | null;
+      isRecurring: boolean;
+      recurringPattern: string | null;
+    }> }>('/ai/extract-tasks', { transcript }),
+
+  chat: (message: string, conversationId?: string, aiContext?: any) =>
+    api.post<{ response: string; conversationId: string }>('/ai/chat', {
+      message,
+      conversation_id: conversationId,
+      ai_context: aiContext,
+    }),
+};
+
+// Calendar API
+export const calendarApi = {
+  getStatus: () =>
+    api.get<{ connected: boolean; provider: string | null; email: string | null }>('/calendar/status'),
+
+  getEvents: () =>
+    api.get<Array<{ id: string; title: string; startTime: string; endTime: string; isAllDay: boolean }>>('/calendar/events'),
+
+  syncItem: (itemId: string) =>
+    api.post<{ calendarEventId: string }>(`/calendar/sync-item`, { item_id: itemId }),
+};
+
+// Sync API (SQLite <-> Backend)
+export const syncApi = {
+  pushLocal: (changes: { created: any[]; updated: any[]; deleted: string[] }) =>
+    api.post('/sync/push', changes),
+
+  pullRemote: (lastSyncTimestamp: number) =>
+    api.get<{ items: any[]; rewards: any[]; timestamp: number }>('/sync/pull', {
+      params: { since: lastSyncTimestamp },
+    }),
 };
 
 export default api;

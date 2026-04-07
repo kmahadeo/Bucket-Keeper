@@ -1,76 +1,158 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+// Bucket Keeper - CoinDisplay
+// Side-by-side Joint and Personal coin counters
+
+import React, { useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../constants/theme';
+
+import { Palette } from '../constants/colors';
+import { Typography, Spacing, BorderRadius, Shadows, Layout } from '../constants/theme';
+import { useThemeColors } from './UIKit';
+
+// ── Props ─────────────────────────────────────────────────────
 
 interface CoinDisplayProps {
   jointCoins: number;
   personalCoins: number;
-  onPress?: () => void;
+  onPersonalPress?: () => void;
 }
 
-export const CoinDisplay: React.FC<CoinDisplayProps> = ({ jointCoins, personalCoins, onPress }) => {
+// ── Component ─────────────────────────────────────────────────
+
+export function CoinDisplay({
+  jointCoins,
+  personalCoins,
+  onPersonalPress,
+}: CoinDisplayProps) {
+  const colors = useThemeColors();
+  const [showTooltip, setShowTooltip] = useState(false);
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={[styles.coinCard, Shadows.sm]} 
-        onPress={onPress}
-        activeOpacity={0.8}
+      {/* Joint Coins */}
+      <View
+        style={[
+          styles.pill,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.cardBorder,
+          },
+          Shadows.subtle,
+        ]}
       >
-        <View style={[styles.iconCircle, { backgroundColor: Colors.accent + '15' }]}>
-          <Ionicons name="people" size={18} color={Colors.accent} />
+        <Ionicons name="globe-outline" size={18} color={Palette.coinGold} />
+        <View style={styles.textCol}>
+          <Text style={[Typography.tiny, { color: colors.textMuted }]}>JOINT</Text>
+          <Text
+            style={[
+              styles.amount,
+              { color: Palette.coinGold },
+            ]}
+          >
+            {jointCoins}
+          </Text>
         </View>
-        <View>
-          <Text style={styles.label}>JOINT</Text>
-          <Text style={[styles.value, { color: Colors.accent }]}>{jointCoins}</Text>
-        </View>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={[styles.coinCard, Shadows.sm]} 
-        onPress={onPress}
-        activeOpacity={0.8}
+      </View>
+
+      {/* Personal Coins */}
+      <Pressable
+        onPress={onPersonalPress}
+        style={({ pressed }) => [
+          styles.pill,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.cardBorder,
+            opacity: pressed && onPersonalPress ? 0.85 : 1,
+          },
+          Shadows.subtle,
+        ]}
       >
-        <View style={[styles.iconCircle, { backgroundColor: Colors.primary + '15' }]}>
-          <Ionicons name="person" size={18} color={Colors.primary} />
+        <Ionicons name="wallet-outline" size={18} color={Palette.coinSilver} />
+        <View style={styles.textCol}>
+          <Text style={[Typography.tiny, { color: colors.textMuted }]}>PERSONAL</Text>
+          <Text
+            style={[
+              styles.amount,
+              { color: Palette.coinSilver },
+            ]}
+          >
+            {personalCoins}
+          </Text>
         </View>
-        <View>
-          <Text style={styles.label}>PERSONAL</Text>
-          <Text style={[styles.value, { color: Colors.primary }]}>{personalCoins}</Text>
+
+        {/* Info icon for tooltip */}
+        <Pressable
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          onPress={() => setShowTooltip((prev) => !prev)}
+          style={styles.infoIcon}
+        >
+          <Ionicons
+            name="information-circle-outline"
+            size={16}
+            color={colors.textMuted}
+          />
+        </Pressable>
+      </Pressable>
+
+      {/* Tooltip */}
+      {showTooltip && (
+        <View
+          style={[
+            styles.tooltip,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.cardBorder,
+            },
+            Shadows.card,
+          ]}
+        >
+          <Text style={[Typography.bodySmall, { color: colors.text }]}>
+            Personal Stash
+          </Text>
+          <Text style={[Typography.tiny, { color: colors.textSecondary, marginTop: 2 }]}>
+            Coins earned from your own completed tasks. Spend them on personal rewards!
+          </Text>
         </View>
-      </TouchableOpacity>
+      )}
     </View>
   );
-};
+}
+
+// ── Styles ────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
-  coinCard: {
+  pill: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.pill,
+    borderWidth: 1,
     gap: Spacing.sm,
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+  textCol: {
+    flex: 1,
   },
-  label: {
-    ...Typography.label,
-    color: Colors.textMuted,
-    marginBottom: 2,
-  },
-  value: {
-    fontSize: 22,
+  amount: {
+    fontSize: 20,
     fontWeight: '700',
+  },
+  infoIcon: {
+    marginLeft: Spacing.xs,
+  },
+  tooltip: {
+    position: 'absolute',
+    bottom: -64,
+    right: 0,
+    width: 220,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    zIndex: 10,
   },
 });

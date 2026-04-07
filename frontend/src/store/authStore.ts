@@ -18,12 +18,15 @@ interface User {
   partner_name?: string;
 }
 
+const ONBOARDING_KEY = 'bucket_keeper_onboarding_done';
+
 interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   sessionToken: string | null;
-  
+  hasCompletedOnboarding: boolean;
+
   // Actions
   setUser: (user: User | null) => void;
   setSessionToken: (token: string | null) => void;
@@ -35,6 +38,7 @@ interface AuthState {
   updateCoins: (joint: number, personal: number) => void;
   updateMood: (mood: string, emoji: string) => Promise<void>;
   linkPartner: (code: string) => Promise<string>;
+  completeOnboarding: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -42,6 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
   isAuthenticated: false,
   sessionToken: null,
+  hasCompletedOnboarding: false,
   
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   
@@ -106,20 +111,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   checkAuth: async () => {
     set({ isLoading: true });
     try {
-      const token = await AsyncStorage.getItem('session_token');
+      const [token, onboardingDone] = await Promise.all([
+        AsyncStorage.getItem('session_token'),
+        AsyncStorage.getItem(ONBOARDING_KEY),
+      ]);
+
       const headers: any = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      
+
       const response = await axios.get(`${API_URL}/api/auth/me`, {
         withCredentials: true,
         headers,
       });
-      
-      set({ user: response.data, isAuthenticated: true, isLoading: false });
+
+      set({
+        user: response.data,
+        isAuthenticated: true,
+        isLoading: false,
+        hasCompletedOnboarding: onboardingDone === 'true',
+      });
     } catch (error) {
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      const onboardingDone = await AsyncStorage.getItem(ONBOARDING_KEY);
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        hasCompletedOnboarding: onboardingDone === 'true',
+      });
     }
   },
   
@@ -150,6 +170,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
+  completeOnboarding: async () => {
+    await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+    set({ hasCompletedOnboarding: true });
+  },
+
   linkPartner: async (code) => {
     try {
       const token = await AsyncStorage.getItem('session_token');

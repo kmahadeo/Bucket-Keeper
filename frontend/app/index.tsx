@@ -1,18 +1,32 @@
+// Bucket Keeper - Auth Screen
+// Dark themed with gradient accents
+
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { useAuthStore } from '../src/store/authStore';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../src/constants/theme';
-import { Button } from '../src/components/UIKit';
+import { useThemeColors, StyledTextInput, GradientButton } from '../src/components/UIKit';
+import { Typography, Spacing, BorderRadius, Shadows, Layout } from '../src/constants/theme';
+import { Palette } from '../src/constants/colors';
 
-export default function Index() {
+export default function AuthScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading, login, register, processOAuthSession } = useAuthStore();
-  
+  const colors = useThemeColors();
+
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +43,6 @@ export default function Index() {
           try {
             setSubmitting(true);
             await processOAuthSession(sessionId);
-            router.replace('/(tabs)');
           } catch (e: any) {
             setError(e.message);
           } finally {
@@ -46,12 +59,6 @@ export default function Index() {
 
     return () => subscription.remove();
   }, []);
-
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      router.replace('/(tabs)');
-    }
-  }, [isAuthenticated, isLoading]);
 
   const handleGoogleLogin = async () => {
     const redirectUrl = Linking.createURL('/');
@@ -77,7 +84,6 @@ export default function Index() {
       } else {
         await register(email, password, name);
       }
-      router.replace('/(tabs)');
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -87,229 +93,149 @@ export default function Index() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={{ flex: 1, backgroundColor: colors.background, ...Layout.center }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Decorative gradient orbs */}
+      <View style={{ position: 'absolute', top: -80, right: -60, opacity: 0.15 }}>
+        <LinearGradient
+          colors={[colors.gradientStart, colors.gradientEnd]}
+          style={{ width: 200, height: 200, borderRadius: 100 }}
+        />
+      </View>
+      <View style={{ position: 'absolute', bottom: 60, left: -40, opacity: 0.1 }}>
+        <LinearGradient
+          colors={[colors.gradientEnd, colors.gradientStart]}
+          style={{ width: 160, height: 160, borderRadius: 80 }}
+        />
+      </View>
+
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+        style={{ flex: 1 }}
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, padding: Spacing.lg, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="heart" size={32} color={Colors.primary} />
-            </View>
-            <Text style={styles.title}>Bucket Keeper</Text>
-            <Text style={styles.subtitle}>Gamify your relationship, together</Text>
+          {/* Logo & Tagline */}
+          <View style={{ alignItems: 'center', marginBottom: Spacing.xxl }}>
+            <LinearGradient
+              colors={[colors.gradientStart, colors.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 20,
+                ...Layout.center,
+                marginBottom: Spacing.md,
+                ...Shadows.fab,
+              }}
+            >
+              <Ionicons name="heart" size={36} color="#FFF" />
+            </LinearGradient>
+            <Text style={{ ...Typography.h1, color: colors.text, marginBottom: Spacing.xs }}>
+              Bucket Keeper
+            </Text>
+            <Text style={{ ...Typography.body, color: colors.textSecondary }}>
+              Let's Gamify Your Relationship
+            </Text>
           </View>
 
           {/* Form */}
-          <View style={styles.form}>
+          <View style={{ gap: Spacing.md }}>
             {!isLoginMode && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Name</Text>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Your name"
-                    placeholderTextColor={Colors.textMuted}
-                    value={name}
-                    onChangeText={setName}
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
+              <StyledTextInput
+                label="Name"
+                placeholder="Your name"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+              />
             )}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="hello@example.com"
-                  placeholderTextColor={Colors.textMuted}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
+            <StyledTextInput
+              label="Email"
+              placeholder="hello@example.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <StyledTextInput
+              label="Password"
+              placeholder="Your password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              error={error || undefined}
+            />
+
+            <GradientButton
+              title={submitting ? 'Please wait...' : isLoginMode ? 'Sign In' : 'Create Account'}
+              onPress={handleSubmit}
+              disabled={submitting}
+              loading={submitting}
+              size="lg"
+              style={{ marginTop: Spacing.sm }}
+            />
+
+            {/* Divider */}
+            <View style={{ ...Layout.row, marginVertical: Spacing.sm }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: colors.cardBorder }} />
+              <Text style={{ ...Typography.caption, color: colors.textMuted, marginHorizontal: Spacing.md }}>
+                or
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: colors.cardBorder }} />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Your password"
-                  placeholderTextColor={Colors.textMuted}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
-              </View>
-            </View>
-
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-            <View style={{ marginTop: Spacing.md }}>
-              <Button
-                title={submitting ? 'Please wait...' : (isLoginMode ? 'Sign In' : 'Create Account')}
-                onPress={handleSubmit}
-                disabled={submitting}
-                size="large"
-              />
-            </View>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
-              <Ionicons name="logo-google" size={20} color={Colors.text} />
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.switchButton}
-              onPress={() => { setIsLoginMode(!isLoginMode); setError(''); }}
+            {/* Google */}
+            <Pressable
+              onPress={handleGoogleLogin}
+              style={({ pressed }) => ({
+                ...Layout.row,
+                justifyContent: 'center',
+                backgroundColor: colors.card,
+                height: 48,
+                borderRadius: BorderRadius.button,
+                borderWidth: 1,
+                borderColor: colors.cardBorder,
+                gap: Spacing.sm,
+                opacity: pressed ? 0.85 : 1,
+              })}
             >
-              <Text style={styles.switchText}>
-                {isLoginMode ? "Don't have an account? " : "Already have an account? "}
-                <Text style={styles.switchTextBold}>
+              <Ionicons name="logo-google" size={20} color={colors.text} />
+              <Text style={{ ...Typography.bodyMedium, color: colors.text }}>
+                Continue with Google
+              </Text>
+            </Pressable>
+
+            {/* Switch mode */}
+            <Pressable
+              onPress={() => {
+                setIsLoginMode(!isLoginMode);
+                setError('');
+              }}
+              style={{ alignItems: 'center', paddingVertical: Spacing.md }}
+            >
+              <Text style={{ ...Typography.body, color: colors.textSecondary }}>
+                {isLoginMode ? "Don't have an account? " : 'Already have an account? '}
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>
                   {isLoginMode ? 'Sign Up' : 'Sign In'}
                 </Text>
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: Spacing.lg,
-    justifyContent: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: Spacing.xxl,
-  },
-  logoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: Colors.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  title: {
-    ...Typography.h1,
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-  },
-  form: {
-    gap: Spacing.md,
-  },
-  inputGroup: {
-    marginBottom: Spacing.sm,
-  },
-  inputLabel: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
-    marginLeft: 2,
-  },
-  inputContainer: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  input: {
-    height: 48,
-    paddingHorizontal: Spacing.md,
-    ...Typography.body,
-    color: Colors.text,
-  },
-  errorText: {
-    ...Typography.caption,
-    color: Colors.error,
-    textAlign: 'center',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    ...Typography.caption,
-    color: Colors.textMuted,
-    marginHorizontal: Spacing.md,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.card,
-    height: 48,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: Spacing.sm,
-  },
-  googleButtonText: {
-    ...Typography.bodyMedium,
-    color: Colors.text,
-  },
-  switchButton: {
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-  },
-  switchText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-  },
-  switchTextBold: {
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-});

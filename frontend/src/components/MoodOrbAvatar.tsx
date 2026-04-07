@@ -1,263 +1,247 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Image } from 'react-native';
+// Bucket Keeper - MoodOrbAvatar
+// Animated avatar with mood-colored glow and gradient ring
+
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, BorderRadius, Shadows } from '../constants/theme';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+} from 'react-native-reanimated';
+
+import type { MoodType } from '../types';
+import { MoodColors, Palette } from '../constants/colors';
+import { Typography, Spacing, BorderRadius, Layout } from '../constants/theme';
+import { Duration, Easings } from '../constants/animations';
+import { useThemeColors } from './UIKit';
+
+// ── Mood config ───────────────────────────────────────────────
+
+const MOOD_EMOJI: Record<MoodType, string> = {
+  energized: '\u26A1',
+  happy: '\uD83D\uDE04',
+  calm: '\uD83C\uDF3F',
+  romantic: '\uD83D\uDC96',
+  tired: '\uD83C\uDF19',
+  stressed: '\uD83D\uDE25',
+};
+
+const MOOD_STATUS_ICON: Record<MoodType, keyof typeof Ionicons.glyphMap> = {
+  energized: 'flash',
+  happy: 'happy',
+  calm: 'leaf',
+  romantic: 'heart',
+  tired: 'moon',
+  stressed: 'alert-circle',
+};
+
+// ── Props ─────────────────────────────────────────────────────
 
 interface MoodOrbAvatarProps {
   name: string;
-  mood: string;
-  moodEmoji: string;
-  imageUrl?: string;
-  isMe?: boolean;
-  size?: 'small' | 'medium' | 'large';
-  onPress?: () => void;
+  mood: MoodType | null;
+  size?: number;
+  isPartner?: boolean;
+  statusIcon?: string;
 }
 
-const MOOD_CONFIG = {
-  energized: { colors: ['#F59E0B', '#FBBF24', '#FDE047'], icon: 'flash' },
-  happy: { colors: ['#10B981', '#34D399', '#6EE7B7'], icon: 'happy' },
-  calm: { colors: ['#3B82F6', '#60A5FA', '#93C5FD'], icon: 'leaf' },
-  romantic: { colors: ['#EC4899', '#F472B6', '#FBCFE8'], icon: 'heart' },
-  tired: { colors: ['#8B5CF6', '#A78BFA', '#C4B5FD'], icon: 'moon' },
-  stressed: { colors: ['#EF4444', '#F87171', '#FCA5A5'], icon: 'alert-circle' },
-};
+// ── Component ─────────────────────────────────────────────────
 
-const SIZES = {
-  small: { avatar: 48, ring: 60, fontSize: FontSize.xs },
-  medium: { avatar: 72, ring: 90, fontSize: FontSize.sm },
-  large: { avatar: 100, ring: 124, fontSize: FontSize.md },
-};
-
-export const MoodOrbAvatar: React.FC<MoodOrbAvatarProps> = ({
+export function MoodOrbAvatar({
   name,
-  mood = 'happy',
-  moodEmoji,
-  imageUrl,
-  isMe = false,
-  size = 'medium',
-  onPress,
-}) => {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0.5)).current;
+  mood,
+  size = 120,
+  isPartner = false,
+  statusIcon,
+}: MoodOrbAvatarProps) {
+  const colors = useThemeColors();
 
-  const moodConfig = MOOD_CONFIG[mood as keyof typeof MOOD_CONFIG] || MOOD_CONFIG.happy;
-  const sizeConfig = SIZES[size];
+  const moodColor = mood ? MoodColors[mood] : colors.primary;
+  const emoji = mood ? MOOD_EMOJI[mood] : null;
+  const moodLabel = mood
+    ? mood.charAt(0).toUpperCase() + mood.slice(1)
+    : null;
+
+  // ── Animations ────────────────────────────────────────────
+
+  // Outer glow pulse: scale 1.0 -> 1.06 -> 1.0, 2.4s loop
+  const glowScale = useSharedValue(1);
+  // Ring rotation: continuous 360deg
+  const ringRotation = useSharedValue(0);
 
   useEffect(() => {
-    // Pulse animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.08,
-          duration: 2000,
-          useNativeDriver: true,
+    glowScale.value = withRepeat(
+      withSequence(
+        withTiming(1.06, {
+          duration: Duration.orbBreathing / 2,
+          easing: Easings.standard,
         }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
+        withTiming(1.0, {
+          duration: Duration.orbBreathing / 2,
+          easing: Easings.standard,
         }),
-      ])
-    ).start();
+      ),
+      -1, // infinite
+      false,
+    );
 
-    // Rotate animation for ring
-    Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 8000,
-        useNativeDriver: true,
-      })
-    ).start();
-
-    // Glow animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 0.8,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0.5,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
+    ringRotation.value = withRepeat(
+      withTiming(360, { duration: 8000, easing: Easings.standard }),
+      -1,
+      false,
+    );
   }, []);
 
-  const rotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+  const glowAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: glowScale.value }],
+  }));
+
+  const ringAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${ringRotation.value}deg` }],
+  }));
+
+  // ── Dimensions ────────────────────────────────────────────
+
+  const innerSize = size * 0.75; // avatar circle
+  const ringSize = size; // gradient ring
+  const glowSize = size * 1.2; // outer glow
+  const statusBadgeSize = size * 0.24;
 
   return (
-    <TouchableOpacity 
-      style={styles.container} 
-      onPress={onPress}
-      activeOpacity={onPress ? 0.8 : 1}
-      disabled={!onPress}
-    >
-      {/* Outer glow */}
+    <View style={styles.wrapper}>
+      {/* Outer glow ring (pulsing) */}
       <Animated.View
         style={[
-          styles.glowOuter,
+          styles.glowRing,
           {
-            width: sizeConfig.ring + 24,
-            height: sizeConfig.ring + 24,
-            borderRadius: (sizeConfig.ring + 24) / 2,
-            backgroundColor: moodConfig.colors[0],
-            opacity: glowAnim,
-            transform: [{ scale: pulseAnim }],
+            width: glowSize,
+            height: glowSize,
+            borderRadius: glowSize / 2,
+            backgroundColor: moodColor,
+            opacity: 0.15,
           },
+          glowAnimatedStyle,
         ]}
       />
 
-      {/* Rotating mood ring */}
+      {/* Mood-colored gradient ring (rotating) */}
       <Animated.View
         style={[
-          styles.ringContainer,
           {
-            width: sizeConfig.ring,
-            height: sizeConfig.ring,
-            transform: [{ rotate }, { scale: pulseAnim }],
+            width: ringSize,
+            height: ringSize,
+            borderRadius: ringSize / 2,
+            overflow: 'hidden',
+            ...Layout.center,
           },
+          ringAnimatedStyle,
         ]}
       >
         <LinearGradient
-          colors={[...moodConfig.colors, moodConfig.colors[0]]}
-          style={styles.ring}
+          colors={[moodColor, colors.gradientEnd, moodColor]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
         />
-        {/* Inner cut-out */}
-        <View style={[
-          styles.ringInner,
-          {
-            width: sizeConfig.avatar + 8,
-            height: sizeConfig.avatar + 8,
-            borderRadius: (sizeConfig.avatar + 8) / 2,
-          }
-        ]} />
+        {/* Inner cutout */}
+        <View
+          style={{
+            width: innerSize + 4,
+            height: innerSize + 4,
+            borderRadius: (innerSize + 4) / 2,
+            backgroundColor: colors.background,
+          }}
+        />
       </Animated.View>
 
-      {/* Avatar */}
-      <View style={[
-        styles.avatar,
-        {
-          width: sizeConfig.avatar,
-          height: sizeConfig.avatar,
-          borderRadius: sizeConfig.avatar / 2,
-        },
-        Shadows.medium,
-      ]}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.avatarImage} />
-        ) : (
-          <LinearGradient
-            colors={['#1F2937', '#111827']}
-            style={styles.avatarGradient}
-          >
-            <Text style={[styles.avatarEmoji, { fontSize: sizeConfig.avatar * 0.5 }]}>
-              {moodEmoji || '😊'}
-            </Text>
-          </LinearGradient>
-        )}
-      </View>
-
-      {/* Name & mood indicator */}
-      <View style={styles.info}>
-        <Text style={[styles.name, { fontSize: sizeConfig.fontSize }]}>
-          {isMe ? 'You' : name?.split(' ')[0]}
+      {/* Inner avatar circle */}
+      <View
+        style={[
+          styles.avatar,
+          {
+            width: innerSize,
+            height: innerSize,
+            borderRadius: innerSize / 2,
+            backgroundColor: colors.card,
+          },
+        ]}
+      >
+        <Text style={{ fontSize: innerSize * 0.45 }}>
+          {emoji ?? name.charAt(0).toUpperCase()}
         </Text>
-        <View style={styles.moodBadge}>
-          <Ionicons 
-            name={moodConfig.icon as any} 
-            size={12} 
-            color={moodConfig.colors[0]} 
-          />
-          <Text style={[styles.moodText, { color: moodConfig.colors[0] }]}>
-            {mood.charAt(0).toUpperCase() + mood.slice(1)}
-          </Text>
-        </View>
       </View>
 
-      {/* Edit indicator for own avatar */}
-      {isMe && onPress && (
-        <View style={[styles.editBadge, { backgroundColor: moodConfig.colors[0] }]}>
-          <Ionicons name="pencil" size={10} color="#FFF" />
+      {/* Status icon badge (top-right) */}
+      {statusIcon && (
+        <View
+          style={[
+            styles.statusBadge,
+            {
+              width: statusBadgeSize,
+              height: statusBadgeSize,
+              borderRadius: statusBadgeSize / 2,
+              backgroundColor: moodColor,
+              borderColor: colors.background,
+              top: 0,
+              right: 0,
+            },
+          ]}
+        >
+          <Ionicons
+            name={statusIcon as keyof typeof Ionicons.glyphMap}
+            size={statusBadgeSize * 0.55}
+            color="#FFF"
+          />
         </View>
       )}
-    </TouchableOpacity>
+
+      {/* Name label */}
+      <Text
+        style={[
+          Typography.caption,
+          { color: colors.text, marginTop: Spacing.sm, textAlign: 'center' },
+        ]}
+        numberOfLines={1}
+      >
+        {isPartner ? name : 'You'}
+      </Text>
+
+      {/* Mood label */}
+      {moodLabel && (
+        <Text
+          style={[
+            Typography.tiny,
+            { color: moodColor, marginTop: 2, textAlign: 'center' },
+          ]}
+        >
+          {moodLabel}
+        </Text>
+      )}
+    </View>
   );
-};
+}
+
+// ── Styles ────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-  },
-  glowOuter: {
-    position: 'absolute',
-    top: -12,
-  },
-  ringContainer: {
-    position: 'absolute',
+  wrapper: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ring: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 999,
-  },
-  ringInner: {
-    backgroundColor: Colors.backgroundDeep,
+  glowRing: {
+    position: 'absolute',
   },
   avatar: {
-    overflow: 'hidden',
-    backgroundColor: '#1F2937',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  avatarGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarEmoji: {
-    textAlign: 'center',
-  },
-  info: {
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  name: {
-    color: Colors.text,
-    fontWeight: '600',
-  },
-  moodBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  moodText: {
-    fontSize: FontSize.xs,
-    fontWeight: '500',
-  },
-  editBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...Layout.center,
+  },
+  statusBadge: {
+    position: 'absolute',
+    ...Layout.center,
     borderWidth: 2,
-    borderColor: Colors.backgroundDeep,
   },
 });

@@ -1,276 +1,416 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../constants/theme';
+// Bucket Keeper - Core UI Kit
+// Theme-aware primitive components
 
-// Clean Card Component
+import React from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  TextInput as RNTextInput,
+  type ViewStyle,
+  type TextInputProps,
+  ActivityIndicator,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useAppStore } from '../store/appStore';
+import { getTheme, Palette } from '../constants/colors';
+import { Typography, Spacing, BorderRadius, Shadows, Layout } from '../constants/theme';
+import type { ThemeColors } from '../types';
+
+// ── Hook: useThemeColors ───────────────────────────────────────
+
+export function useThemeColors(): ThemeColors {
+  const { themeMode, themeName } = useAppStore();
+  return getTheme(themeMode, themeName);
+}
+
+// ── Card ───────────────────────────────────────────────────────
+
 interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
   onPress?: () => void;
+  padded?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ children, style, onPress }) => {
+export function Card({ children, style, onPress, padded = true }: CardProps) {
+  const colors = useThemeColors();
+
+  const cardStyle: ViewStyle = {
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.card,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    ...(padded && {
+      paddingVertical: Spacing.cardPaddingV,
+      paddingHorizontal: Spacing.cardPaddingH,
+    }),
+    ...Shadows.card,
+  };
+
   if (onPress) {
     return (
-      <TouchableOpacity 
-        style={[styles.card, Shadows.sm, style]} 
+      <Pressable
         onPress={onPress}
-        activeOpacity={0.7}
+        style={({ pressed }) => [cardStyle, pressed && { opacity: 0.92 }, style]}
       >
         {children}
-      </TouchableOpacity>
+      </Pressable>
     );
   }
-  return <View style={[styles.card, Shadows.sm, style]}>{children}</View>;
-};
 
-// Primary Button
-interface ButtonProps {
+  return <View style={[cardStyle, style]}>{children}</View>;
+}
+
+// ── GradientButton ─────────────────────────────────────────────
+
+interface GradientButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline';
-  icon?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  loading?: boolean;
   disabled?: boolean;
-  size?: 'small' | 'medium' | 'large';
+  variant?: 'primary' | 'secondary' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
+  style?: ViewStyle;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+export function GradientButton({
   title,
   onPress,
+  icon,
+  loading,
+  disabled,
   variant = 'primary',
-  icon,
-  disabled = false,
-  size = 'medium',
-}) => {
-  const heights = { small: 40, medium: 48, large: 56 };
-  const fontSizes = { small: 14, medium: 16, large: 17 };
-  
-  const bgColors = {
-    primary: Colors.primary,
-    secondary: Colors.accent,
-    outline: 'transparent',
-  };
-  
-  const textColors = {
-    primary: '#FFFFFF',
-    secondary: '#FFFFFF',
-    outline: Colors.primary,
-  };
+  size = 'md',
+  style,
+}: GradientButtonProps) {
+  const colors = useThemeColors();
 
-  return (
-    <TouchableOpacity
-      style={[
-        styles.button,
-        {
-          backgroundColor: bgColors[variant],
-          height: heights[size],
-          borderWidth: variant === 'outline' ? 1.5 : 0,
-          borderColor: Colors.primary,
-          opacity: disabled ? 0.5 : 1,
-        },
-      ]}
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.8}
-    >
-      {icon && (
-        <Ionicons 
-          name={icon as any} 
-          size={size === 'small' ? 16 : 20} 
-          color={textColors[variant]}
-          style={{ marginRight: Spacing.sm }}
-        />
-      )}
-      <Text style={[styles.buttonText, { color: textColors[variant], fontSize: fontSizes[size] }]}>
-        {title}
-      </Text>
-    </TouchableOpacity>
-  );
-};
+  const heights = { sm: 36, md: 48, lg: 56 };
+  const fontSizes = { sm: 13, md: 15, lg: 17 };
+  const iconSizes = { sm: 16, md: 18, lg: 22 };
 
-// Stat Card (Ultrahuman-inspired)
-interface StatCardProps {
-  label: string;
-  value: string | number;
-  icon?: string;
-  color?: string;
-  subtitle?: string;
-}
-
-export const StatCard: React.FC<StatCardProps> = ({
-  label,
-  value,
-  icon,
-  color = Colors.primary,
-  subtitle,
-}) => {
-  return (
-    <Card style={styles.statCard}>
-      <View style={styles.statHeader}>
-        {icon && (
-          <View style={[styles.statIcon, { backgroundColor: color + '15' }]}>
-            <Ionicons name={icon as any} size={18} color={color} />
-          </View>
-        )}
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
-    </Card>
-  );
-};
-
-// Avatar with mood ring
-interface AvatarProps {
-  name: string;
-  emoji?: string;
-  moodColor?: string;
-  size?: 'small' | 'medium' | 'large';
-  onPress?: () => void;
-}
-
-export const Avatar: React.FC<AvatarProps> = ({
-  name,
-  emoji = '😊',
-  moodColor = Colors.moods.happy,
-  size = 'medium',
-  onPress,
-}) => {
-  const sizes = { small: 40, medium: 56, large: 80 };
-  const emojiSizes = { small: 18, medium: 26, large: 38 };
-  const avatarSize = sizes[size];
-  
-  const Wrapper = onPress ? TouchableOpacity : View;
-  
-  return (
-    <Wrapper onPress={onPress} activeOpacity={0.8}>
-      <View style={[
-        styles.avatarContainer,
-        {
-          width: avatarSize + 6,
-          height: avatarSize + 6,
-          borderRadius: (avatarSize + 6) / 2,
-          borderColor: moodColor,
-        }
-      ]}>
-        <View style={[
-          styles.avatar,
+  if (variant === 'outline') {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled || loading}
+        style={({ pressed }) => [
           {
-            width: avatarSize,
-            height: avatarSize,
-            borderRadius: avatarSize / 2,
-          }
-        ]}>
-          <Text style={{ fontSize: emojiSizes[size] }}>{emoji}</Text>
-        </View>
-      </View>
-      {name && <Text style={styles.avatarName}>{name}</Text>}
-    </Wrapper>
-  );
-};
+            height: heights[size],
+            borderRadius: BorderRadius.button,
+            borderWidth: 1.5,
+            borderColor: colors.primary,
+            ...Layout.center,
+            flexDirection: 'row' as const,
+            paddingHorizontal: Spacing.lg,
+            opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          },
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : (
+          <>
+            {icon && (
+              <Ionicons name={icon} size={iconSizes[size]} color={colors.primary} style={{ marginRight: 8 }} />
+            )}
+            <Text style={{ color: colors.primary, fontSize: fontSizes[size], fontWeight: '600' }}>
+              {title}
+            </Text>
+          </>
+        )}
+      </Pressable>
+    );
+  }
 
-// Chip/Tag
+  if (variant === 'secondary') {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled || loading}
+        style={({ pressed }) => [
+          {
+            height: heights[size],
+            borderRadius: BorderRadius.button,
+            backgroundColor: Palette.white10,
+            ...Layout.center,
+            flexDirection: 'row' as const,
+            paddingHorizontal: Spacing.lg,
+            opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          },
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={colors.text} />
+        ) : (
+          <>
+            {icon && (
+              <Ionicons name={icon} size={iconSizes[size]} color={colors.text} style={{ marginRight: 8 }} />
+            )}
+            <Text style={{ color: colors.text, fontSize: fontSizes[size], fontWeight: '600' }}>
+              {title}
+            </Text>
+          </>
+        )}
+      </Pressable>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled || loading}
+      style={({ pressed }) => [{ opacity: disabled ? 0.5 : pressed ? 0.9 : 1 }, style]}
+    >
+      <LinearGradient
+        colors={[colors.gradientStart, colors.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          height: heights[size],
+          borderRadius: BorderRadius.button,
+          ...Layout.center,
+          flexDirection: 'row' as const,
+          paddingHorizontal: Spacing.lg,
+          ...Shadows.fab,
+        }}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color="#FFF" />
+        ) : (
+          <>
+            {icon && (
+              <Ionicons name={icon} size={iconSizes[size]} color="#FFF" style={{ marginRight: 8 }} />
+            )}
+            <Text style={{ color: '#FFF', fontSize: fontSizes[size], fontWeight: '700' }}>
+              {title}
+            </Text>
+          </>
+        )}
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+// ── Chip ───────────────────────────────────────────────────────
+
 interface ChipProps {
   label: string;
   selected?: boolean;
   onPress?: () => void;
   color?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  size?: 'sm' | 'md';
 }
 
-export const Chip: React.FC<ChipProps> = ({
-  label,
-  selected = false,
-  onPress,
-  color = Colors.primary,
-}) => {
+export function Chip({ label, selected, onPress, color, icon, size = 'md' }: ChipProps) {
+  const colors = useThemeColors();
+  const chipColor = color ?? colors.primary;
+
   return (
-    <TouchableOpacity
-      style={[
-        styles.chip,
-        selected && { backgroundColor: color, borderColor: color },
-      ]}
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.7}
+      style={({ pressed }) => ({
+        flexDirection: 'row' as const,
+        alignItems: 'center' as const,
+        paddingHorizontal: size === 'sm' ? 10 : 14,
+        paddingVertical: size === 'sm' ? 4 : 6,
+        borderRadius: BorderRadius.pill,
+        backgroundColor: selected ? chipColor : 'transparent',
+        borderWidth: 1,
+        borderColor: selected ? chipColor : colors.textMuted,
+        opacity: pressed ? 0.85 : 1,
+      })}
     >
-      <Text style={[styles.chipText, selected && { color: '#FFF' }]}>
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={size === 'sm' ? 12 : 14}
+          color={selected ? '#FFF' : colors.textMuted}
+          style={{ marginRight: 4 }}
+        />
+      )}
+      <Text
+        style={{
+          fontSize: size === 'sm' ? 11 : 13,
+          fontWeight: '600',
+          color: selected ? '#FFF' : colors.textMuted,
+        }}
+      >
         {label}
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
-};
+}
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.lg,
-  },
-  buttonText: {
-    fontWeight: '600',
-  },
-  statCard: {
-    flex: 1,
-  },
-  statHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  statIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.sm,
-  },
-  statLabel: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-  },
-  statValue: {
-    ...Typography.h1,
-  },
-  statSubtitle: {
-    ...Typography.caption,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  avatarContainer: {
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatar: {
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarName: {
-    ...Typography.caption,
-    color: Colors.text,
-    textAlign: 'center',
-    marginTop: Spacing.xs,
-  },
-  chip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  chipText: {
-    ...Typography.caption,
-    color: Colors.text,
-  },
-});
+// ── Avatar ─────────────────────────────────────────────────────
+
+interface AvatarProps {
+  name: string;
+  color?: string;
+  size?: number;
+  emoji?: string;
+}
+
+export function Avatar({ name, color, size = 40, emoji }: AvatarProps) {
+  const colors = useThemeColors();
+  const bgColor = color ?? colors.primary;
+
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: bgColor,
+        ...Layout.center,
+      }}
+    >
+      <Text style={{ fontSize: size * 0.4, color: '#FFF', fontWeight: '700' }}>
+        {emoji ?? name.charAt(0).toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+// ── StatCard ───────────────────────────────────────────────────
+
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon?: keyof typeof Ionicons.glyphMap;
+  color?: string;
+}
+
+export function StatCard({ label, value, icon, color }: StatCardProps) {
+  const colors = useThemeColors();
+
+  return (
+    <Card style={{ flex: 1 }}>
+      <View style={Layout.row}>
+        {icon && (
+          <Ionicons
+            name={icon}
+            size={18}
+            color={color ?? colors.primary}
+            style={{ marginRight: Spacing.sm }}
+          />
+        )}
+        <Text style={{ ...Typography.caption, color: colors.textSecondary }}>{label}</Text>
+      </View>
+      <Text style={{ ...Typography.h2, color: colors.text, marginTop: Spacing.xs }}>
+        {value}
+      </Text>
+    </Card>
+  );
+}
+
+// ── TextInput ──────────────────────────────────────────────────
+
+interface StyledTextInputProps extends TextInputProps {
+  label?: string;
+  error?: string;
+}
+
+export function StyledTextInput({ label, error, style, ...props }: StyledTextInputProps) {
+  const colors = useThemeColors();
+
+  return (
+    <View>
+      {label && (
+        <Text style={{ ...Typography.caption, color: colors.textSecondary, marginBottom: Spacing.xs }}>
+          {label}
+        </Text>
+      )}
+      <RNTextInput
+        placeholderTextColor={colors.textMuted}
+        style={[
+          {
+            height: 48,
+            backgroundColor: Palette.white06,
+            borderRadius: BorderRadius.md,
+            paddingHorizontal: Spacing.md,
+            color: colors.text,
+            ...Typography.body,
+            borderWidth: 1,
+            borderColor: error ? colors.error : 'transparent',
+          },
+          style,
+        ]}
+        {...props}
+      />
+      {error && (
+        <Text style={{ ...Typography.tiny, color: colors.error, marginTop: Spacing.xs }}>
+          {error}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+// ── SectionHeader ──────────────────────────────────────────────
+
+interface SectionHeaderProps {
+  title: string;
+  action?: string;
+  onAction?: () => void;
+}
+
+export function SectionHeader({ title, action, onAction }: SectionHeaderProps) {
+  const colors = useThemeColors();
+
+  return (
+    <View style={[Layout.rowBetween, { marginBottom: Spacing.md }]}>
+      <Text style={{ ...Typography.label, color: colors.textSecondary }}>{title}</Text>
+      {action && onAction && (
+        <Pressable onPress={onAction} style={Layout.row}>
+          <Ionicons name="add" size={16} color={colors.primary} />
+          <Text style={{ ...Typography.caption, color: colors.primary, marginLeft: 4 }}>
+            {action}
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+// ── Badge ──────────────────────────────────────────────────────
+
+interface BadgeProps {
+  text: string;
+  color?: string;
+  textColor?: string;
+}
+
+export function Badge({ text, color, textColor }: BadgeProps) {
+  const colors = useThemeColors();
+
+  return (
+    <View
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: BorderRadius.pill,
+        backgroundColor: color ?? Palette.indigo15,
+      }}
+    >
+      <Text style={{ ...Typography.tiny, color: textColor ?? colors.primary, fontWeight: '700' }}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+// ── Divider ────────────────────────────────────────────────────
+
+export function Divider({ style }: { style?: ViewStyle }) {
+  const colors = useThemeColors();
+  return (
+    <View style={[{ height: 1, backgroundColor: colors.cardBorder, marginVertical: Spacing.md }, style]} />
+  );
+}

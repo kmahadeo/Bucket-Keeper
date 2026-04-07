@@ -1,327 +1,534 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal } from 'react-native';
+// Bucket Keeper - Home Screen
+// Partner avatars, AI insights, priorities, mood tracking
+
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  RefreshControl,
+  Pressable,
+  Modal,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { format } from 'date-fns';
 import { useAuthStore } from '../../src/store/authStore';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../src/constants/theme';
-import { Card, Avatar, Button } from '../../src/components/UIKit';
-import { CoinDisplay } from '../../src/components/CoinDisplay';
-import { AIInsightCard } from '../../src/components/AIInsightCard';
-import { TaskCard } from '../../src/components/TaskCard';
+import { useThemeColors, Card, GradientButton, Badge } from '../../src/components/UIKit';
+import { Typography, Spacing, BorderRadius, Layout, Shadows } from '../../src/constants/theme';
+import { Palette, MoodColors } from '../../src/constants/colors';
 import { statsApi, aiApi, itemsApi } from '../../src/utils/api';
+import type { MoodType } from '../../src/types';
 
-const MOODS = [
-  { id: 'energized', label: 'Energized', emoji: '⚡' },
-  { id: 'happy', label: 'Happy', emoji: '😊' },
-  { id: 'calm', label: 'Calm', emoji: '🌿' },
-  { id: 'romantic', label: 'Romantic', emoji: '💕' },
-  { id: 'tired', label: 'Tired', emoji: '😴' },
-  { id: 'stressed', label: 'Stressed', emoji: '😰' },
+const MOODS: { key: MoodType; label: string; emoji: string }[] = [
+  { key: 'energized', label: 'Energized', emoji: '⚡' },
+  { key: 'happy', label: 'Happy', emoji: '😊' },
+  { key: 'calm', label: 'Calm', emoji: '🌿' },
+  { key: 'romantic', label: 'Romantic', emoji: '💕' },
+  { key: 'tired', label: 'Tired', emoji: '😴' },
+  { key: 'stressed', label: 'Stressed', emoji: '😰' },
 ];
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user, updateMood, updateCoins } = useAuthStore();
+  const colors = useThemeColors();
   const [refreshing, setRefreshing] = useState(false);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
 
   const { data: snapshot, refetch: refetchSnapshot } = useQuery({
     queryKey: ['snapshot'],
-    queryFn: () => statsApi.getSnapshot().then(r => r.data),
-    enabled: !!user,
-  });
-
-  const { data: insightData, isLoading: insightLoading, refetch: refetchInsight } = useQuery({
-    queryKey: ['insight', 'home'],
-    queryFn: () => aiApi.getInsight('home').then(r => r.data),
-    enabled: !!user,
-    staleTime: 60000,
+    queryFn: () => statsApi.getSnapshot().then((r) => r.data),
   });
 
   const { data: priorities, refetch: refetchPriorities } = useQuery({
     queryKey: ['priorities'],
-    queryFn: () => statsApi.getPriorities().then(r => r.data),
-    enabled: !!user,
+    queryFn: () => statsApi.getPriorities().then((r) => r.data),
   });
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([refetchSnapshot(), refetchInsight(), refetchPriorities()]);
-    setRefreshing(false);
-  };
+  const { data: insight } = useQuery({
+    queryKey: ['insight'],
+    queryFn: () => aiApi.getInsight('home').then((r) => r.data.insight),
+    staleTime: 60000,
+  });
 
-  const handleMoodSelect = async (mood: typeof MOODS[0]) => {
-    await updateMood(mood.id, mood.emoji);
-    setShowMoodPicker(false);
-  };
-
-  const handleCompleteTask = async (itemId: string) => {
-    try {
-      const response = await itemsApi.complete(itemId);
-      updateCoins(response.data.coins_joint, response.data.coins_personal);
-      refetchSnapshot();
+  const completeMutation = useMutation({
+    mutationFn: (itemId: string) => itemsApi.complete(itemId),
+    onSuccess: (_, itemId) => {
       refetchPriorities();
-    } catch (error) {
-      console.error('Failed to complete task:', error);
-    }
+      refetchSnapshot();
+    },
+  });
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([refetchSnapshot(), refetchPriorities()]);
+    setRefreshing(false);
+  }, []);
+
+  const handleMoodSelect = async (mood: MoodType, emoji: string) => {
+    setShowMoodPicker(false);
+    await updateMood(mood, emoji);
+    refetchSnapshot();
   };
 
-  const getMoodColor = (mood: string) => {
-    return Colors.moods[mood as keyof typeof Colors.moods] || Colors.primary;
-  };
-
-  if (!user) return null;
+  const greeting = getGreeting();
+  const today = format(new Date(), 'EEEE, MMMM d');
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
         }
+        showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View
+          style={{
+            ...Layout.rowBetween,
+            paddingHorizontal: Spacing.screenHorizontal,
+            paddingTop: Spacing.md,
+            paddingBottom: Spacing.sm,
+          }}
+        >
           <View>
-            <Text style={styles.greeting}>Hi, {user.name?.split(' ')[0]}</Text>
-            <Text style={styles.date}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            <Text style={{ ...Typography.h1, color: colors.text }}>
+              {greeting}, {user?.name?.split(' ')[0] ?? 'there'}
+            </Text>
+            <Text style={{ ...Typography.bodySmall, color: colors.textMuted, marginTop: 2 }}>
+              {today}
             </Text>
           </View>
-          <TouchableOpacity style={styles.settingsBtn} onPress={() => router.push('/(tabs)/profile')}>
-            <Ionicons name="settings-outline" size={22} color={Colors.text} />
-          </TouchableOpacity>
+          <Pressable
+            onPress={() => router.push('/profile')}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: Palette.white06,
+              ...Layout.center,
+            }}
+          >
+            <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
+          </Pressable>
         </View>
 
-        {/* Coins */}
-        <CoinDisplay 
-          jointCoins={user.coins_joint} 
-          personalCoins={user.coins_personal}
-          onPress={() => router.push('/(tabs)/store')}
-        />
-
-        {/* Couple Status */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Couple Status</Text>
-          <Card style={styles.coupleCard}>
-            <View style={styles.coupleRow}>
-              <Avatar
-                name="You"
-                emoji={user.mood_emoji || '😊'}
-                moodColor={getMoodColor(user.mood || 'happy')}
-                size="large"
-                onPress={() => setShowMoodPicker(true)}
-              />
-              
-              <View style={styles.heartDivider}>
-                <Ionicons name="heart" size={24} color={Colors.accent} />
-              </View>
-              
-              {snapshot?.partner ? (
-                <Avatar
-                  name={snapshot.partner.name?.split(' ')[0] || 'Partner'}
-                  emoji={snapshot.partner.mood_emoji || '😊'}
-                  moodColor={getMoodColor(snapshot.partner.mood || 'happy')}
-                  size="large"
-                />
-              ) : (
-                <TouchableOpacity style={styles.addPartner} onPress={() => router.push('/(tabs)/profile')}>
-                  <View style={styles.addPartnerCircle}>
-                    <Ionicons name="add" size={24} color={Colors.primary} />
+        <View style={{ paddingHorizontal: Spacing.screenHorizontal, gap: Spacing.sectionGap }}>
+          {/* Partner Avatars */}
+          <View style={{ alignItems: 'center', paddingVertical: Spacing.md }}>
+            <View style={{ ...Layout.row, gap: Spacing.xl }}>
+              {/* You */}
+              <View style={{ alignItems: 'center' }}>
+                <View
+                  style={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: 50,
+                    borderWidth: 3,
+                    borderColor: getMoodColor(snapshot?.me?.mood as MoodType),
+                    ...Layout.center,
+                    ...Shadows.card,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 88,
+                      height: 88,
+                      borderRadius: 44,
+                      backgroundColor: colors.card,
+                      ...Layout.center,
+                    }}
+                  >
+                    <Text style={{ fontSize: 40 }}>
+                      {snapshot?.me?.mood_emoji || '😊'}
+                    </Text>
                   </View>
-                  <Text style={styles.addPartnerText}>Add Partner</Text>
-                </TouchableOpacity>
-              )}
+                  {snapshot?.me?.mood && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -2,
+                        right: -2,
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: getMoodColor(snapshot.me.mood as MoodType),
+                        ...Layout.center,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12 }}>⚡</Text>
+                    </View>
+                  )}
+                </View>
+                <Text
+                  style={{
+                    ...Typography.label,
+                    color: getMoodColor(snapshot?.me?.mood as MoodType),
+                    marginTop: Spacing.sm,
+                  }}
+                >
+                  {(snapshot?.me?.mood ?? 'HAPPY').toUpperCase()}
+                </Text>
+                <Text style={{ ...Typography.caption, color: colors.textSecondary, marginTop: 2 }}>
+                  You
+                </Text>
+              </View>
+
+              {/* Heart divider */}
+              <View style={{ ...Layout.center, paddingTop: Spacing.md }}>
+                <Text style={{ fontSize: 20, color: Palette.error }}>❤️</Text>
+              </View>
+
+              {/* Partner */}
+              <View style={{ alignItems: 'center' }}>
+                <View
+                  style={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: 50,
+                    borderWidth: 3,
+                    borderColor: getMoodColor(snapshot?.partner?.mood as MoodType),
+                    ...Layout.center,
+                    ...Shadows.card,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 88,
+                      height: 88,
+                      borderRadius: 44,
+                      backgroundColor: colors.card,
+                      ...Layout.center,
+                    }}
+                  >
+                    <Text style={{ fontSize: 40 }}>
+                      {snapshot?.partner?.mood_emoji || '😸'}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  style={{
+                    ...Typography.label,
+                    color: getMoodColor(snapshot?.partner?.mood as MoodType),
+                    marginTop: Spacing.sm,
+                  }}
+                >
+                  {(snapshot?.partner?.mood ?? 'CALM').toUpperCase()}
+                </Text>
+                <Text style={{ ...Typography.caption, color: colors.textSecondary, marginTop: 2 }}>
+                  {snapshot?.partner?.name ?? 'Partner'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* AI Insight */}
+          {insight && (
+            <Card>
+              <View style={Layout.row}>
+                <Text style={{ fontSize: 14, marginRight: Spacing.sm }}>✨</Text>
+                <Text style={{ ...Typography.caption, color: colors.primary, fontWeight: '700' }}>
+                  AI Insight:
+                </Text>
+              </View>
+              <Text
+                style={{
+                  ...Typography.bodySmall,
+                  color: colors.textSecondary,
+                  marginTop: Spacing.sm,
+                  lineHeight: 20,
+                }}
+              >
+                {insight}
+              </Text>
+            </Card>
+          )}
+
+          {/* Action Buttons */}
+          <View style={{ ...Layout.row, gap: Spacing.md }}>
+            <Pressable
+              onPress={() => setShowMoodPicker(true)}
+              style={({ pressed }) => ({
+                flex: 1,
+                ...Layout.row,
+                justifyContent: 'center',
+                height: 44,
+                borderRadius: BorderRadius.button,
+                backgroundColor: Palette.white06,
+                gap: Spacing.sm,
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 14 }}>✨</Text>
+              <Text style={{ ...Typography.bodyMedium, color: colors.text }}>Vibe Check</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push('/ai-daily-plan')}
+              style={({ pressed }) => ({
+                flex: 1,
+                ...Layout.row,
+                justifyContent: 'center',
+                height: 44,
+                borderRadius: BorderRadius.button,
+                backgroundColor: Palette.white06,
+                gap: Spacing.sm,
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 14 }}>🎯</Text>
+              <Text style={{ ...Typography.bodyMedium, color: colors.text }}>AI Plan</Text>
+            </Pressable>
+          </View>
+
+          {/* Weekly Check-in */}
+          <Card
+            style={{
+              borderColor: Palette.success,
+              borderWidth: 1,
+              backgroundColor: 'rgba(34, 197, 94, 0.06)',
+            }}
+          >
+            <View style={Layout.rowBetween}>
+              <View style={Layout.row}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                    ...Layout.center,
+                    marginRight: Spacing.md,
+                  }}
+                >
+                  <Ionicons name="checkmark-circle" size={22} color={Palette.success} />
+                </View>
+                <View>
+                  <Text style={{ ...Typography.h3, color: colors.text }}>Weekly Check-in</Text>
+                  <Text style={{ ...Typography.bodySmall, color: colors.textSecondary }}>
+                    Review goals & high-priority items
+                  </Text>
+                </View>
+              </View>
+              <Pressable
+                style={{
+                  paddingHorizontal: Spacing.md,
+                  paddingVertical: Spacing.sm,
+                  borderRadius: BorderRadius.button,
+                  backgroundColor: Palette.success,
+                }}
+              >
+                <Text style={{ ...Typography.caption, color: '#FFF', fontWeight: '700' }}>
+                  Start
+                </Text>
+              </Pressable>
             </View>
           </Card>
-        </View>
 
-        {/* AI Insight */}
-        <View style={styles.section}>
-          <AIInsightCard 
-            insight={insightData?.insight || 'Complete tasks together to earn rewards!'}
-            isLoading={insightLoading}
-          />
-        </View>
-
-        {/* Today's Overview */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Overview</Text>
-          <View style={styles.overviewGrid}>
-            <Card style={styles.overviewCard}>
-              <View style={[styles.overviewIcon, { backgroundColor: Colors.primary + '15' }]}>
-                <Ionicons name="person" size={18} color={Colors.primary} />
+          {/* Top Priorities */}
+          <View>
+            <View style={[Layout.rowBetween, { marginBottom: Spacing.md }]}>
+              <View style={Layout.row}>
+                <Text style={{ fontSize: 14, marginRight: Spacing.sm }}>⚡</Text>
+                <Text style={{ ...Typography.label, color: colors.textSecondary }}>
+                  TOP PRIORITIES
+                </Text>
               </View>
-              <Text style={styles.overviewValue}>{snapshot?.me.pending || 0}</Text>
-              <Text style={styles.overviewLabel}>My tasks</Text>
-            </Card>
-            <Card style={styles.overviewCard}>
-              <View style={[styles.overviewIcon, { backgroundColor: Colors.accent + '15' }]}>
-                <Ionicons name="people" size={18} color={Colors.accent} />
-              </View>
-              <Text style={styles.overviewValue}>{snapshot?.us.pending || 0}</Text>
-              <Text style={styles.overviewLabel}>Together</Text>
-            </Card>
-            <Card style={styles.overviewCard}>
-              <View style={[styles.overviewIcon, { backgroundColor: Colors.success + '15' }]}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
-              </View>
-              <Text style={styles.overviewValue}>{snapshot?.me.completed_today || 0}</Text>
-              <Text style={styles.overviewLabel}>Done today</Text>
-            </Card>
-          </View>
-        </View>
-
-        {/* Priorities */}
-        {priorities && priorities.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Top Priorities</Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/buckets')}>
-                <Text style={styles.viewAllLink}>View all</Text>
-              </TouchableOpacity>
+              <Pressable onPress={() => router.push('/(tabs)/buckets')}>
+                <Text style={{ ...Typography.caption, color: colors.primary }}>View All</Text>
+              </Pressable>
             </View>
-            {priorities.slice(0, 3).map((item) => (
-              <TaskCard
-                key={item.item_id}
-                item={item}
-                onComplete={() => handleCompleteTask(item.item_id)}
-                onPress={() => router.push('/(tabs)/buckets')}
-              />
-            ))}
+
+            {priorities && priorities.length > 0 ? (
+              <View style={{ gap: Spacing.sm }}>
+                {priorities.slice(0, 5).map((task: any) => (
+                  <Card key={task.item_id} onPress={() => {}}>
+                    <View style={Layout.rowBetween}>
+                      <View style={{ ...Layout.row, flex: 1 }}>
+                        <Pressable
+                          onPress={() => completeMutation.mutate(task.item_id)}
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            borderWidth: 2,
+                            borderColor: getPriorityColor(task.priority),
+                            ...Layout.center,
+                            marginRight: Spacing.md,
+                          }}
+                        >
+                          {task.completed && (
+                            <Ionicons name="checkmark" size={14} color={getPriorityColor(task.priority)} />
+                          )}
+                        </Pressable>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={{
+                              ...Typography.bodyMedium,
+                              color: colors.text,
+                            }}
+                            numberOfLines={1}
+                          >
+                            {task.title}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={Layout.row}>
+                        <Badge
+                          text={`${task.reward}`}
+                          color={Palette.indigo15}
+                          textColor={colors.primary}
+                        />
+                      </View>
+                    </View>
+                  </Card>
+                ))}
+              </View>
+            ) : (
+              <Card>
+                <Text
+                  style={{
+                    ...Typography.body,
+                    color: colors.textMuted,
+                    textAlign: 'center',
+                    paddingVertical: Spacing.lg,
+                  }}
+                >
+                  No priorities yet. Add some tasks to get started!
+                </Text>
+              </Card>
+            )}
           </View>
-        )}
-
-        {/* Quick Add */}
-        <View style={styles.section}>
-          <Button
-            title="Add New Task"
-            icon="add-circle-outline"
-            onPress={() => router.push('/(tabs)/add')}
-          />
         </View>
-
-        <View style={{ height: Spacing.xxl }} />
       </ScrollView>
+
+      {/* Floating Mic Button */}
+      <Pressable
+        onPress={() => router.push('/voice-capture')}
+        style={{
+          position: 'absolute',
+          bottom: 20,
+          alignSelf: 'center',
+          ...Shadows.fab,
+        }}
+      >
+        <LinearGradient
+          colors={[colors.gradientStart, colors.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            ...Layout.center,
+          }}
+        >
+          <Ionicons name="mic" size={28} color="#FFF" />
+        </LinearGradient>
+      </Pressable>
 
       {/* Mood Picker Modal */}
       <Modal visible={showMoodPicker} transparent animationType="fade">
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <Pressable
           onPress={() => setShowMoodPicker(false)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            justifyContent: 'flex-end',
+          }}
         >
-          <View style={styles.moodPicker}>
-            <Text style={styles.moodPickerTitle}>How are you feeling?</Text>
-            <View style={styles.moodGrid}>
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: colors.card,
+              borderTopLeftRadius: BorderRadius.card,
+              borderTopRightRadius: BorderRadius.card,
+              padding: Spacing.lg,
+              paddingBottom: Spacing.xxl,
+            }}
+          >
+            <Text
+              style={{
+                ...Typography.h2,
+                color: colors.text,
+                textAlign: 'center',
+                marginBottom: Spacing.lg,
+              }}
+            >
+              How are you feeling?
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                gap: Spacing.md,
+              }}
+            >
               {MOODS.map((mood) => (
-                <TouchableOpacity
-                  key={mood.id}
-                  style={[
-                    styles.moodOption,
-                    user.mood === mood.id && styles.moodOptionSelected,
-                  ]}
-                  onPress={() => handleMoodSelect(mood)}
+                <Pressable
+                  key={mood.key}
+                  onPress={() => handleMoodSelect(mood.key, mood.emoji)}
+                  style={({ pressed }) => ({
+                    width: 90,
+                    height: 90,
+                    borderRadius: BorderRadius.card,
+                    backgroundColor:
+                      user?.mood === mood.key
+                        ? MoodColors[mood.key] + '20'
+                        : Palette.white06,
+                    borderWidth: user?.mood === mood.key ? 2 : 0,
+                    borderColor: MoodColors[mood.key],
+                    ...Layout.center,
+                    opacity: pressed ? 0.8 : 1,
+                  })}
                 >
-                  <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-                  <Text style={styles.moodLabel}>{mood.label}</Text>
-                </TouchableOpacity>
+                  <Text style={{ fontSize: 28, marginBottom: 4 }}>{mood.emoji}</Text>
+                  <Text style={{ ...Typography.tiny, color: colors.textSecondary }}>
+                    {mood.label}
+                  </Text>
+                </Pressable>
               ))}
             </View>
-          </View>
-        </TouchableOpacity>
+          </Pressable>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scrollView: { flex: 1 },
-  content: { padding: Spacing.lg },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  greeting: { ...Typography.h1, color: Colors.text },
-  date: { ...Typography.caption, color: Colors.textSecondary, marginTop: 2 },
-  settingsBtn: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: Colors.card,
-    alignItems: 'center', justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  section: { marginTop: Spacing.lg },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: { ...Typography.h3, color: Colors.text, marginBottom: Spacing.md },
-  viewAllLink: { ...Typography.caption, color: Colors.primary },
-  coupleCard: { padding: Spacing.lg },
-  coupleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  heartDivider: {
-    width: 48, height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.accent + '15',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  addPartner: { alignItems: 'center' },
-  addPartnerCircle: {
-    width: 80, height: 80, borderRadius: 40,
-    borderWidth: 2, borderColor: Colors.primary, borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  addPartnerText: { ...Typography.caption, color: Colors.primary },
-  overviewGrid: { flexDirection: 'row', gap: Spacing.sm },
-  overviewCard: { flex: 1, alignItems: 'center', padding: Spacing.md },
-  overviewIcon: {
-    width: 36, height: 36, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  overviewValue: { ...Typography.h2, color: Colors.text },
-  overviewLabel: { ...Typography.caption, color: Colors.textMuted },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  moodPicker: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    width: '100%',
-  },
-  moodPickerTitle: { ...Typography.h3, color: Colors.text, textAlign: 'center', marginBottom: Spacing.lg },
-  moodGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.sm },
-  moodOption: {
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.background,
-    width: 90,
-  },
-  moodOptionSelected: {
-    backgroundColor: Colors.primary + '15',
-    borderWidth: 2,
-    borderColor: Colors.primary,
-  },
-  moodEmoji: { fontSize: 28, marginBottom: Spacing.xs },
-  moodLabel: { ...Typography.caption, color: Colors.text },
-});
+// ── Helpers ────────────────────────────────────────────────────
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function getMoodColor(mood: MoodType | string | null | undefined): string {
+  if (!mood || !(mood in MoodColors)) return Palette.indigo;
+  return MoodColors[mood as MoodType];
+}
+
+function getPriorityColor(priority: string): string {
+  switch (priority) {
+    case 'high':
+      return Palette.priorityHigh;
+    case 'urgent':
+      return Palette.priorityUrgent;
+    case 'low':
+      return Palette.priorityLow;
+    default:
+      return Palette.priorityNormal;
+  }
+}

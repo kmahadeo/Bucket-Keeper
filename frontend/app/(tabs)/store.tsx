@@ -1,33 +1,68 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput, Modal, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  Alert,
+  ActivityIndicator,
+  FlatList,
+  Dimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../src/store/authStore';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../src/constants/theme';
-import { Card, Button } from '../../src/components/UIKit';
+import { Typography, Spacing, BorderRadius, Layout, Shadows } from '../../src/constants/theme';
+import { Palette } from '../../src/constants/colors';
+import {
+  Card,
+  GradientButton,
+  Chip,
+  SectionHeader,
+  Badge,
+  useThemeColors,
+} from '../../src/components/UIKit';
 import { CoinDisplay } from '../../src/components/CoinDisplay';
 import { rewardsApi, Reward } from '../../src/utils/api';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const TREAT_CARD_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.sm) / 2;
+
 export default function StoreScreen() {
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const { user, updateCoins } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newReward, setNewReward] = useState({ title: '', cost: '50', reward_type: 'personal' as 'personal' | 'joint', is_goal: false });
+  const [newReward, setNewReward] = useState({
+    title: '',
+    cost: '50',
+    reward_type: 'personal' as 'personal' | 'joint',
+    is_goal: false,
+  });
 
-  const { data: rewards, isLoading, refetch } = useQuery({
+  const {
+    data: rewards,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['rewards'],
-    queryFn: () => rewardsApi.getAll().then(r => r.data),
+    queryFn: () => rewardsApi.getAll().then((r) => r.data),
   });
 
   const createMutation = useMutation({
-    mutationFn: () => rewardsApi.create({
-      title: newReward.title,
-      cost: parseInt(newReward.cost) || 50,
-      reward_type: newReward.reward_type,
-      is_goal: newReward.is_goal,
-    }),
+    mutationFn: () =>
+      rewardsApi.create({
+        title: newReward.title,
+        cost: parseInt(newReward.cost) || 50,
+        reward_type: newReward.reward_type,
+        is_goal: newReward.is_goal,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rewards'] });
       setShowAddModal(false);
@@ -54,7 +89,8 @@ export default function StoreScreen() {
   };
 
   const handleRedeem = (reward: Reward) => {
-    const currentCoins = reward.reward_type === 'joint' ? user?.coins_joint : user?.coins_personal;
+    const currentCoins =
+      reward.reward_type === 'joint' ? user?.coins_joint : user?.coins_personal;
     if ((currentCoins || 0) < reward.cost) {
       Alert.alert('Not enough coins', `You need ${reward.cost} coins`);
       return;
@@ -65,90 +101,249 @@ export default function StoreScreen() {
     ]);
   };
 
-  const jointRewards = rewards?.filter(r => r.reward_type === 'joint' && !r.is_goal) || [];
-  const personalRewards = rewards?.filter(r => r.reward_type === 'personal' && !r.is_goal) || [];
-  const goals = rewards?.filter(r => r.is_goal) || [];
+  const goals = rewards?.filter((r) => r.is_goal) || [];
+  const treats = rewards?.filter((r) => !r.is_goal) || [];
 
-  const RewardCard = ({ reward }: { reward: Reward }) => (
-    <Card style={styles.rewardCard}>
-      <View style={[styles.rewardIcon, { backgroundColor: reward.reward_type === 'joint' ? Colors.accent + '15' : Colors.primary + '15' }]}>
-        <Ionicons 
-          name={reward.is_goal ? 'flag' : 'gift'} 
-          size={20} 
-          color={reward.reward_type === 'joint' ? Colors.accent : Colors.primary} 
-        />
-      </View>
-      <View style={styles.rewardInfo}>
-        <Text style={styles.rewardTitle}>{reward.title}</Text>
-        <View style={styles.rewardCost}>
-          <Ionicons name="star" size={14} color={Colors.gold} />
-          <Text style={styles.costText}>{reward.cost}</Text>
+  const jointCoins = user?.coins_joint ?? 0;
+  const personalCoins = user?.coins_personal ?? 0;
+
+  const renderGoalCard = (reward: Reward) => (
+    <Card key={reward.reward_id} style={{ marginBottom: Spacing.sm }}>
+      <View style={Layout.row}>
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: BorderRadius.md,
+            backgroundColor:
+              reward.reward_type === 'joint'
+                ? Palette.coinGold + '18'
+                : Palette.indigo15,
+            ...Layout.center,
+            marginRight: Spacing.md,
+          }}
+        >
+          <Text style={{ fontSize: 22 }}>
+            {reward.reward_type === 'joint' ? '\uD83C\uDFC6' : '\uD83C\uDFAF'}
+          </Text>
         </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{ ...Typography.bodyMedium, color: colors.text }}
+            numberOfLines={1}
+          >
+            {reward.title}
+          </Text>
+          <View style={[Layout.row, { marginTop: 2, gap: Spacing.xs }]}>
+            <Ionicons name="star" size={14} color={Palette.coinGold} />
+            <Text
+              style={{
+                ...Typography.caption,
+                color: Palette.coinGold,
+                fontWeight: '700',
+              }}
+            >
+              {reward.cost}
+            </Text>
+          </View>
+        </View>
+        {reward.reward_type === 'joint' && (
+          <Ionicons
+            name="lock-closed"
+            size={16}
+            color={colors.textMuted}
+            style={{ marginLeft: Spacing.sm }}
+          />
+        )}
       </View>
-      <TouchableOpacity style={styles.redeemBtn} onPress={() => handleRedeem(reward)}>
-        <Text style={styles.redeemText}>Redeem</Text>
-      </TouchableOpacity>
     </Card>
   );
 
+  const renderTreatCard = (reward: Reward, index: number) => (
+    <View
+      key={reward.reward_id}
+      style={{
+        width: TREAT_CARD_WIDTH,
+        marginBottom: Spacing.sm,
+        marginRight: index % 2 === 0 ? Spacing.sm : 0,
+      }}
+    >
+      <Card padded={false}>
+        <View style={{ padding: Spacing.md, alignItems: 'center' }}>
+          <Text style={{ fontSize: 32, marginBottom: Spacing.sm }}>
+            {reward.reward_type === 'joint' ? '\uD83C\uDF81' : '\uD83C\uDF89'}
+          </Text>
+          <Text
+            style={{
+              ...Typography.bodyMedium,
+              color: colors.text,
+              textAlign: 'center',
+              marginBottom: Spacing.xs,
+            }}
+            numberOfLines={2}
+          >
+            {reward.title}
+          </Text>
+          <Badge
+            text={`${reward.cost} coins`}
+            color={Palette.coinGold + '20'}
+            textColor={Palette.coinGold}
+          />
+          <View style={{ marginTop: Spacing.sm, width: '100%' }}>
+            <GradientButton
+              title="Redeem"
+              onPress={() => handleRedeem(reward)}
+              size="sm"
+            />
+          </View>
+        </View>
+      </Card>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Rewards</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
-          <Ionicons name="add" size={24} color="#FFF" />
-        </TouchableOpacity>
+        <Text style={[Typography.h1, { color: colors.text }]}>Rewards</Text>
       </View>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       >
-        <CoinDisplay jointCoins={user?.coins_joint || 0} personalCoins={user?.coins_personal || 0} />
+        {/* Coin display pills */}
+        <CoinDisplay
+          jointCoins={jointCoins}
+          personalCoins={personalCoins}
+        />
+
+        {/* AI Recommendation card */}
+        <Card style={{ marginTop: Spacing.lg }}>
+          <View style={Layout.row}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: Palette.indigo15,
+                ...Layout.center,
+                marginRight: Spacing.md,
+              }}
+            >
+              <Ionicons name="sparkles" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  ...Typography.label,
+                  color: colors.primary,
+                  marginBottom: 2,
+                }}
+              >
+                AI RECOMMENDATION
+              </Text>
+              <Text
+                style={{
+                  ...Typography.bodySmall,
+                  color: colors.textSecondary,
+                }}
+              >
+                Analyzing your rewards...
+              </Text>
+            </View>
+          </View>
+        </Card>
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           <>
-            {goals.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Savings Goals</Text>
-                {goals.map((reward) => <RewardCard key={reward.reward_id} reward={reward} />)}
-              </View>
-            )}
-
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Joint Rewards</Text>
-                <TouchableOpacity onPress={() => { setNewReward(r => ({ ...r, reward_type: 'joint' })); setShowAddModal(true); }}>
-                  <Text style={styles.addLink}>+ Add</Text>
-                </TouchableOpacity>
-              </View>
-              {jointRewards.length > 0 ? (
-                jointRewards.map((reward) => <RewardCard key={reward.reward_id} reward={reward} />)
+            {/* Joint Goals */}
+            <View style={{ marginTop: Spacing.sectionGap }}>
+              <SectionHeader
+                title="JOINT GOALS"
+                action="Add Custom"
+                onAction={() => {
+                  setNewReward((r) => ({
+                    ...r,
+                    reward_type: 'joint',
+                    is_goal: true,
+                  }));
+                  setShowAddModal(true);
+                }}
+              />
+              {goals.length > 0 ? (
+                goals.map(renderGoalCard)
               ) : (
-                <Card style={styles.emptyCard}>
-                  <Text style={styles.emptyText}>No joint rewards yet</Text>
+                <Card style={{ alignItems: 'center' as const }}>
+                  <Ionicons
+                    name="flag-outline"
+                    size={28}
+                    color={colors.textMuted}
+                  />
+                  <Text
+                    style={{
+                      ...Typography.bodySmall,
+                      color: colors.textMuted,
+                      marginTop: Spacing.xs,
+                    }}
+                  >
+                    No goals yet. Set one to start saving!
+                  </Text>
                 </Card>
               )}
             </View>
 
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Personal Rewards</Text>
-                <TouchableOpacity onPress={() => { setNewReward(r => ({ ...r, reward_type: 'personal' })); setShowAddModal(true); }}>
-                  <Text style={styles.addLink}>+ Add</Text>
-                </TouchableOpacity>
-              </View>
-              {personalRewards.length > 0 ? (
-                personalRewards.map((reward) => <RewardCard key={reward.reward_id} reward={reward} />)
+            {/* Treat Yourself */}
+            <View style={{ marginTop: Spacing.sectionGap }}>
+              <SectionHeader
+                title="TREAT YOURSELF"
+                action="Add Custom"
+                onAction={() => {
+                  setNewReward((r) => ({
+                    ...r,
+                    reward_type: 'personal',
+                    is_goal: false,
+                  }));
+                  setShowAddModal(true);
+                }}
+              />
+              {treats.length > 0 ? (
+                <View style={styles.treatGrid}>
+                  {treats.map((reward, index) =>
+                    renderTreatCard(reward, index)
+                  )}
+                </View>
               ) : (
-                <Card style={styles.emptyCard}>
-                  <Text style={styles.emptyText}>No personal rewards yet</Text>
+                <Card style={{ alignItems: 'center' as const }}>
+                  <Ionicons
+                    name="gift-outline"
+                    size={28}
+                    color={colors.textMuted}
+                  />
+                  <Text
+                    style={{
+                      ...Typography.bodySmall,
+                      color: colors.textMuted,
+                      marginTop: Spacing.xs,
+                    }}
+                  >
+                    Add rewards to motivate yourselves!
+                  </Text>
                 </Card>
               )}
             </View>
@@ -157,66 +352,219 @@ export default function StoreScreen() {
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
 
-      {/* Add Modal */}
+      {/* Add Reward Modal */}
       <Modal visible={showAddModal} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowAddModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Create Reward</Text>
-            
-            <Text style={styles.modalLabel}>Name</Text>
-            <View style={styles.modalInput}>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Movie Night"
-                placeholderTextColor={Colors.textMuted}
-                value={newReward.title}
-                onChangeText={(text) => setNewReward(r => ({ ...r, title: text }))}
-              />
-            </View>
-
-            <Text style={styles.modalLabel}>Cost (coins)</Text>
-            <View style={styles.modalInput}>
-              <TextInput
-                style={styles.input}
-                placeholder="50"
-                placeholderTextColor={Colors.textMuted}
-                value={newReward.cost}
-                onChangeText={(text) => setNewReward(r => ({ ...r, cost: text }))}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <Text style={styles.modalLabel}>Type</Text>
-            <View style={styles.typeRow}>
-              <TouchableOpacity
-                style={[styles.typeBtn, newReward.reward_type === 'personal' && styles.typeBtnActive]}
-                onPress={() => setNewReward(r => ({ ...r, reward_type: 'personal' }))}
+        <TouchableOpacity
+          style={[
+            styles.modalOverlay,
+            { backgroundColor: 'rgba(0,0,0,0.6)' },
+          ]}
+          activeOpacity={1}
+          onPress={() => setShowAddModal(false)}
+        >
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.cardBorder,
+              },
+            ]}
+          >
+            <TouchableOpacity activeOpacity={1}>
+              <Text
+                style={{
+                  ...Typography.h2,
+                  color: colors.text,
+                  textAlign: 'center',
+                  marginBottom: Spacing.lg,
+                }}
               >
-                <Ionicons name="person" size={18} color={newReward.reward_type === 'personal' ? '#FFF' : Colors.primary} />
-                <Text style={[styles.typeText, newReward.reward_type === 'personal' && { color: '#FFF' }]}>Personal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.typeBtn, newReward.reward_type === 'joint' && styles.typeBtnActive]}
-                onPress={() => setNewReward(r => ({ ...r, reward_type: 'joint' }))}
-              >
-                <Ionicons name="people" size={18} color={newReward.reward_type === 'joint' ? '#FFF' : Colors.accent} />
-                <Text style={[styles.typeText, newReward.reward_type === 'joint' && { color: '#FFF' }]}>Joint</Text>
-              </TouchableOpacity>
-            </View>
+                Create Reward
+              </Text>
 
-            <TouchableOpacity
-              style={styles.goalToggle}
-              onPress={() => setNewReward(r => ({ ...r, is_goal: !r.is_goal }))}
-            >
-              <Ionicons name={newReward.is_goal ? 'checkbox' : 'square-outline'} size={22} color={newReward.is_goal ? Colors.primary : Colors.textMuted} />
-              <Text style={styles.goalText}>This is a savings goal</Text>
+              <Text
+                style={{
+                  ...Typography.label,
+                  color: colors.textSecondary,
+                  marginBottom: Spacing.xs,
+                }}
+              >
+                NAME
+              </Text>
+              <View
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.cardBorder,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: colors.text },
+                  ]}
+                  placeholder="e.g., Movie Night"
+                  placeholderTextColor={colors.textMuted}
+                  value={newReward.title}
+                  onChangeText={(text) =>
+                    setNewReward((r) => ({ ...r, title: text }))
+                  }
+                />
+              </View>
+
+              <Text
+                style={{
+                  ...Typography.label,
+                  color: colors.textSecondary,
+                  marginBottom: Spacing.xs,
+                  marginTop: Spacing.md,
+                }}
+              >
+                COST (COINS)
+              </Text>
+              <View
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.cardBorder,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="50"
+                  placeholderTextColor={colors.textMuted}
+                  value={newReward.cost}
+                  onChangeText={(text) =>
+                    setNewReward((r) => ({ ...r, cost: text }))
+                  }
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <Text
+                style={{
+                  ...Typography.label,
+                  color: colors.textSecondary,
+                  marginBottom: Spacing.xs,
+                  marginTop: Spacing.md,
+                }}
+              >
+                TYPE
+              </Text>
+              <View style={styles.typeRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.typeBtn,
+                    {
+                      backgroundColor:
+                        newReward.reward_type === 'personal'
+                          ? colors.primary
+                          : colors.background,
+                      borderColor:
+                        newReward.reward_type === 'personal'
+                          ? colors.primary
+                          : colors.cardBorder,
+                    },
+                  ]}
+                  onPress={() =>
+                    setNewReward((r) => ({ ...r, reward_type: 'personal' }))
+                  }
+                >
+                  <Ionicons
+                    name="person"
+                    size={18}
+                    color={
+                      newReward.reward_type === 'personal'
+                        ? '#FFF'
+                        : colors.primary
+                    }
+                  />
+                  <Text
+                    style={[
+                      Typography.caption,
+                      {
+                        color:
+                          newReward.reward_type === 'personal'
+                            ? '#FFF'
+                            : colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    Personal
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.typeBtn,
+                    {
+                      backgroundColor:
+                        newReward.reward_type === 'joint'
+                          ? Palette.coinGold
+                          : colors.background,
+                      borderColor:
+                        newReward.reward_type === 'joint'
+                          ? Palette.coinGold
+                          : colors.cardBorder,
+                    },
+                  ]}
+                  onPress={() =>
+                    setNewReward((r) => ({ ...r, reward_type: 'joint' }))
+                  }
+                >
+                  <Ionicons
+                    name="people"
+                    size={18}
+                    color={
+                      newReward.reward_type === 'joint'
+                        ? '#FFF'
+                        : Palette.coinGold
+                    }
+                  />
+                  <Text
+                    style={[
+                      Typography.caption,
+                      {
+                        color:
+                          newReward.reward_type === 'joint'
+                            ? '#FFF'
+                            : colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    Joint
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.goalToggle}
+                onPress={() =>
+                  setNewReward((r) => ({ ...r, is_goal: !r.is_goal }))
+                }
+              >
+                <Ionicons
+                  name={newReward.is_goal ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={newReward.is_goal ? colors.primary : colors.textMuted}
+                />
+                <Text style={{ ...Typography.body, color: colors.text }}>
+                  This is a savings goal
+                </Text>
+              </TouchableOpacity>
+
+              <GradientButton
+                title={createMutation.isPending ? 'Creating...' : 'Create Reward'}
+                onPress={() => createMutation.mutate()}
+                disabled={createMutation.isPending || !newReward.title.trim()}
+                loading={createMutation.isPending}
+                size="lg"
+              />
             </TouchableOpacity>
-
-            <Button
-              title={createMutation.isPending ? 'Creating...' : 'Create Reward'}
-              onPress={() => createMutation.mutate()}
-              disabled={createMutation.isPending || !newReward.title}
-            />
           </View>
         </TouchableOpacity>
       </Modal>
@@ -225,92 +573,62 @@ export default function StoreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  title: { ...Typography.h1, color: Colors.text },
-  addBtn: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-  },
   content: { flex: 1 },
   contentContainer: { padding: Spacing.lg },
-  loadingContainer: { paddingVertical: Spacing.xxl, alignItems: 'center' },
-  section: { marginTop: Spacing.lg },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  loadingContainer: {
+    paddingVertical: Spacing.xxl,
     alignItems: 'center',
-    marginBottom: Spacing.md,
   },
-  sectionTitle: { ...Typography.h3, color: Colors.text, marginBottom: Spacing.md },
-  addLink: { ...Typography.caption, color: Colors.primary },
-  emptyCard: { alignItems: 'center', padding: Spacing.lg },
-  emptyText: { ...Typography.body, color: Colors.textMuted },
-  rewardCard: {
+  treatGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
+    flexWrap: 'wrap',
   },
-  rewardIcon: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  rewardInfo: { flex: 1 },
-  rewardTitle: { ...Typography.bodyMedium, color: Colors.text, marginBottom: 2 },
-  rewardCost: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  costText: { ...Typography.caption, color: Colors.gold, fontWeight: '600' },
-  redeemBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-  },
-  redeemText: { ...Typography.caption, color: '#FFF', fontWeight: '600' },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.lg,
   },
   modalContent: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.card,
     padding: Spacing.lg,
     width: '100%',
+    borderWidth: 1,
   },
-  modalTitle: { ...Typography.h2, color: Colors.text, textAlign: 'center', marginBottom: Spacing.lg },
-  modalLabel: { ...Typography.label, color: Colors.textSecondary, marginBottom: Spacing.xs, marginTop: Spacing.sm },
   modalInput: {
-    backgroundColor: Colors.background,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
-  input: { height: 48, paddingHorizontal: Spacing.md, ...Typography.body, color: Colors.text },
-  typeRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
+  input: {
+    height: 48,
+    paddingHorizontal: Spacing.md,
+    ...Typography.body,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
   typeBtn: {
-    flex: 1, flexDirection: 'row',
-    alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, padding: Spacing.md,
-    backgroundColor: Colors.background,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    borderWidth: 1, borderColor: Colors.border,
+    borderWidth: 1,
   },
-  typeBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  typeText: { ...Typography.caption, color: Colors.textSecondary },
   goalToggle: {
-    flexDirection: 'row', alignItems: 'center',
-    gap: Spacing.sm, paddingVertical: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
     marginBottom: Spacing.md,
   },
-  goalText: { ...Typography.body, color: Colors.text },
 });
