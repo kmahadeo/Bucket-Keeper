@@ -1,17 +1,18 @@
 // Bucket Keeper - Database Initialization & Helpers
 
 import { Platform } from 'react-native';
+import type * as SQLite from 'expo-sqlite';
 import { MIGRATIONS, CURRENT_VERSION } from './schema';
 
 const DB_NAME = 'bucketkeeper.db';
 
-let db: any = null;
+let db: SQLite.SQLiteDatabase | null = null;
 
 /**
  * Returns the singleton database instance.
- * Throws if `initDatabase()` has not been called yet.
+ * Throws if `initDatabase()` has not been called yet (or on web).
  */
-export function getDatabase(): any {
+export function getDatabase(): SQLite.SQLiteDatabase {
   if (!db) {
     throw new Error(
       'Database not initialized. Call initDatabase() before accessing the database.'
@@ -25,7 +26,7 @@ export function getDatabase(): any {
  * then runs any pending migrations.
  * Returns null on web (SQLite not supported).
  */
-export function initDatabase(): any {
+export function initDatabase(): SQLite.SQLiteDatabase | null {
   if (db) return db;
 
   // expo-sqlite doesn't support web
@@ -34,15 +35,16 @@ export function initDatabase(): any {
     return null;
   }
 
-  const SQLite = require('expo-sqlite');
-  db = SQLite.openDatabaseSync(DB_NAME);
+  // Use require so web bundler doesn't eagerly resolve the native module
+  const SQLiteModule = require('expo-sqlite');
+  db = SQLiteModule.openDatabaseSync(DB_NAME);
 
   // Enable WAL for better concurrent read performance
-  db.execSync('PRAGMA journal_mode = WAL;');
+  db!.execSync('PRAGMA journal_mode = WAL;');
   // Enforce foreign key constraints
-  db.execSync('PRAGMA foreign_keys = ON;');
+  db!.execSync('PRAGMA foreign_keys = ON;');
 
-  runMigrations(db);
+  runMigrations(db!);
 
   return db;
 }

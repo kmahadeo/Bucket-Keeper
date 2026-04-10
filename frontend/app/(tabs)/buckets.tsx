@@ -138,7 +138,10 @@ export default function BucketsScreen() {
   const completeMutation = useMutation({
     mutationFn: (itemId: string) => itemsApi.complete(itemId),
     onSuccess: (response) => {
-      updateCoins(response.data.coins_joint, response.data.coins_personal);
+      const data = response.data as any;
+      if (data?.coins_joint !== undefined) {
+        updateCoins(data.coins_joint, data.coins_personal);
+      }
       queryClient.invalidateQueries({ queryKey: ['items'] });
       queryClient.invalidateQueries({ queryKey: ['snapshot'] });
     },

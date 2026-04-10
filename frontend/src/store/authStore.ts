@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { DEMO_MODE, mockUser } from '../utils/demoMode';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
@@ -60,26 +61,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   
   login: async (email, password) => {
+    if (DEMO_MODE) {
+      set({ user: mockUser as any, isAuthenticated: true, hasCompletedOnboarding: true });
+      return;
+    }
     try {
       const response = await axios.post(`${API_URL}/api/auth/login`, {
         email,
         password,
       }, { withCredentials: true });
-      
+
       set({ user: response.data, isAuthenticated: true });
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Login failed');
     }
   },
-  
+
   register: async (email, password, name) => {
+    if (DEMO_MODE) {
+      set({ user: { ...mockUser, name } as any, isAuthenticated: true, hasCompletedOnboarding: true });
+      return;
+    }
     try {
       const response = await axios.post(`${API_URL}/api/auth/register`, {
         email,
         password,
         name,
       }, { withCredentials: true });
-      
+
       set({ user: response.data, isAuthenticated: true });
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Registration failed');
@@ -110,6 +119,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   
   checkAuth: async () => {
     set({ isLoading: true });
+
+    if (DEMO_MODE) {
+      set({
+        user: mockUser as any,
+        isAuthenticated: true,
+        isLoading: false,
+        hasCompletedOnboarding: true,
+      });
+      return;
+    }
+
     try {
       const [token, onboardingDone] = await Promise.all([
         AsyncStorage.getItem('session_token'),
@@ -151,16 +171,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   
   updateMood: async (mood, emoji) => {
+    if (DEMO_MODE) {
+      const { user } = get();
+      if (user) {
+        set({ user: { ...user, mood, mood_emoji: emoji } });
+      }
+      return;
+    }
     try {
       const token = await AsyncStorage.getItem('session_token');
-      await axios.put(`${API_URL}/api/user/mood`, 
+      await axios.put(`${API_URL}/api/user/mood`,
         { mood, mood_emoji: emoji },
-        { 
+        {
           withCredentials: true,
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
-      
+
       const { user } = get();
       if (user) {
         set({ user: { ...user, mood, mood_emoji: emoji } });
@@ -176,16 +203,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   linkPartner: async (code) => {
+    if (DEMO_MODE) {
+      const { user } = get();
+      if (user) {
+        set({ user: { ...user, partner_name: 'Margaux', partner_id: 'linked' } });
+      }
+      return 'Margaux';
+    }
     try {
       const token = await AsyncStorage.getItem('session_token');
       const response = await axios.post(`${API_URL}/api/user/link-partner`,
         { partner_code: code },
-        { 
+        {
           withCredentials: true,
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
-      
+
       const { user } = get();
       if (user) {
         set({ user: { ...user, partner_name: response.data.partner_name, partner_id: 'linked' } });

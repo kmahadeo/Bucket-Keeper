@@ -30,9 +30,10 @@ function useProtectedRoute() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthScreen = segments[0] === undefined || segments[0] === 'index';
-    const inOnboarding = segments[0] === 'onboarding';
-    const inTabs = segments[0] === '(tabs)';
+    const firstSegment = segments[0] as string | undefined;
+    const inAuthScreen = firstSegment === undefined || firstSegment === '' || firstSegment === 'index';
+    const inOnboarding = firstSegment === 'onboarding';
+    const inTabs = firstSegment === '(tabs)';
 
     if (!isAuthenticated && !inAuthScreen) {
       router.replace('/');

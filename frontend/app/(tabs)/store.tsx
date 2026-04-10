@@ -71,11 +71,14 @@ export default function StoreScreen() {
   });
 
   const redeemMutation = useMutation({
-    mutationFn: (rewardId: string) => rewardsApi.redeem(rewardId),
+    mutationFn: (rewardId: string) => rewardsApi.redeem(rewardId) as Promise<any>,
     onSuccess: (response) => {
-      updateCoins(response.data.coins_joint, response.data.coins_personal);
+      const data = response?.data as any;
+      if (data?.coins_joint !== undefined) {
+        updateCoins(data.coins_joint, data.coins_personal);
+      }
       queryClient.invalidateQueries({ queryKey: ['rewards'] });
-      Alert.alert('Redeemed!', response.data.message);
+      Alert.alert('Redeemed!', data?.message || 'Enjoy your reward!');
     },
     onError: (error: any) => {
       Alert.alert('Error', error.response?.data?.detail || 'Failed to redeem');

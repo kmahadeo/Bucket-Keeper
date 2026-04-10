@@ -1,0 +1,67 @@
+name: Deploy Web Demo to GitHub Pages
+
+on:
+  push:
+    branches:
+      - claude/bucket-keeper-rebuild-R5YFN
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Web Bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: yarn install --frozen-lockfile
+
+      - name: Export web bundle
+        working-directory: frontend
+        env:
+          EXPO_OFFLINE: '1'
+          EXPO_PUBLIC_DEMO_MODE: 'true'
+        run: npx expo export --platform web
+
+      - name: Add .nojekyll and SPA 404 fallback
+        working-directory: frontend/dist
+        run: |
+          touch .nojekyll
+          # Copy index.html to 404.html so client-side routes work on GitHub Pages
+          if [ -f index.html ]; then cp index.html 404.html; fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
