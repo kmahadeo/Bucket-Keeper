@@ -3,7 +3,6 @@ name: Deploy Web Demo to GitHub Pages
 on:
   push:
     branches:
-      - claude/bucket-keeper-rebuild-R5YFN
       - main
   workflow_dispatch:
 
